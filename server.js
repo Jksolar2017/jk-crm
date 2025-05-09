@@ -8,6 +8,8 @@ require('dotenv').config();
 
 const app = express();
 const port = 3000;
+const fileUpload = require('express-fileupload');
+app.use(fileUpload());
 
 
 const puppeteer = require('puppeteer');
@@ -1975,8 +1977,125 @@ app.post('/api/addNote', async (req, res) => {
     res.status(500).json({ error: 'Failed to add note' });
   }
 });
+<<<<<<< HEAD
+=======
 
 
+
+app.post('/api/deleteNote', async (req, res) => {
+  const { index } = req.body;
+  const fileName = 'TempData.xlsx';
+
+  try {
+    const { workbook, token } = await getWorkbookFromOneDrive(fileName);
+    const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Sheet not found' });
+
+    let rowIndex = 0, count = 0;
+
+    sheet.eachRow((row, i) => {
+      if (row.getCell(38).value) {
+        if (count === index) rowIndex = i;
+        count++;
+      }
+    });
+
+    if (rowIndex > 0) {
+      sheet.getRow(rowIndex).getCell(38).value = null;
+      await uploadWorkbookToOneDrive(fileName, workbook, token);
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('❌ Error deleting note:', err.message);
+    res.status(500).json({ error: 'Failed to delete note' });
+  }
+});
+
+
+// 🎟️ Get Access Token using Client Credentials
+async function getAccessToken() {
+  const tokenUrl = `https://login.microsoftonline.com/785fd7e9-594d-4549-91b9-9372f7295962/oauth2/v2.0/token`;
+
+  const data = qs.stringify({
+    grant_type: 'client_credentials',
+    client_id: '89a49313-0f16-44c3-9f71-cf96eab166ad',
+    client_secret: 'IZ-8Q~GaHcwhQnrCCj~ZH_I_3bHsZYpoC1xm2aLk',
+    scope: 'https://graph.microsoft.com/.default',
+  });
+
+  const response = await axios.post(tokenUrl, data, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+  });
+
+   console.log("🎟️ Access Token:", response.data.access_token);
+  return response.data.access_token;
+}
+
+// 📥 Fetch leads.xlsx from OneDrive and return as ExcelJS workbook
+async function downloadExcelFromOneDrive() {
+  try {
+    const accessToken = await getAccessToken();
+
+    // Update URL to include the correct user endpoint
+    const fileUrl = "https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/leads.xlsx:/content";
+
+    const response = await axios.get(fileUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      responseType: 'arraybuffer',
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(response.data);
+
+    console.log("✅ leads.xlsx downloaded and loaded from OneDrive");
+    return workbook;
+  } catch (err) {
+    console.error("❌ Error downloading file from OneDrive:", err.response?.data || err.message);
+    throw err;
+  }
+}
+
+async function getWorkbookFromOneDrive(fileName) {
+  const token = await getAccessToken();
+
+  // Updated URL to use users/<user-email> for app-only token
+  const fileUrl = `https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/${fileName}:/content`;
+
+  const response = await axios.get(fileUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'arraybuffer'
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(response.data);
+
+  return { workbook, token };
+}
+
+async function uploadWorkbookToOneDrive(fileName, workbook, token) {
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  // Updated URL for app-only access
+  const uploadUrl = `https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/${fileName}:/content`;
+
+  await axios.put(uploadUrl, buffer, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }
+  });
+
+  console.log(`✅ Uploaded ${fileName} to OneDrive.`);
+}
+>>>>>>> f9fa637 (Finalizing express-fileupload setup)
+
+
+module.exports = {
+  getAccessToken,
+  getWorkbookFromOneDrive,
+  uploadWorkbookToOneDrive
+};
 
 app.post('/api/deleteNote', async (req, res) => {
   const { index } = req.body;
