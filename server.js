@@ -1,328 +1,201 @@
-// 🚀 Basic Setup
+// 🚀 Basic Setup (OneDrive-Ready)
 const express = require('express');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
-const xlsx = require('xlsx');
-const ExcelJS = require('exceljs');
-const bodyParser = require('body-parser');
-const cors = require('cors');
 const axios = require('axios');
 const qs = require('qs');
+const path = require('path');
+const ExcelJS = require('exceljs');
 require('dotenv').config();
 
 const app = express();
 const port = 3000;
 
-app.use(cors());
-app.use(express.static('public')); // your frontend files (html/css/js)
-app.use(express.json());
-app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
 
-// 📂 Paths Setup
-const crmFolderPath = 'C:/Users/JK SOLAR/OneDrive/CRM_PWA';
-const uploadsBasePath = path.join(crmFolderPath, 'uploads');
-const excelFilePath = path.join(crmFolderPath, 'TempData.xlsx');
-const stockFilePath = path.join(crmFolderPath, 'Stock Sheet.xlsx');
-//const applicationTimelineFilePath = path.join(crmFolderPath, 'applicationTimeline.xlsx');
+const puppeteer = require('puppeteer');
 
-// 🛠 Middlewares
-app.use(express.static('public'));
+app.use(express.static('public')); // serves HTML/CSS/JS
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+// 📂 OneDrive Setup – no local paths needed
+
+// 🛠 Basic Route Setup
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-//excel path for timeline application
-//const applicationExcelFilePath = 'C:/Users/JK SOLAR/OneDrive/CRM_PWA/applicationTimeline.xlsx';
-const excelPath = 'C:/Users/JK SOLAR/OneDrive/CRM_PWA/Stock Sheet.xlsx';
-const FILE_PATH = 'C:/Users/JK SOLAR/OneDrive/CRM_PWA/Stock Sheet.xlsx';
-
-// Middleware to serve frontend
-app.use(express.static('public'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 
-// ✅ Multer instance for multiple file fields (aadhar, bill, etc.)
-const multiUpload = multer({
-  storage: multer.diskStorage({
-    destination: function (req, file, cb) {
-      const clientName = req.body.name.trim().toLowerCase().replace(/\s+/g, '_');
-      const clientFolderPath = path.join(uploadsBasePath, clientName);
+// 📄 Excel file name for stock sheet (stored in OneDrive)
+const stockSheetFileName = 'Stock Sheet.xlsx';
 
-      // Ensure the client folder exists
-      if (!fs.existsSync(clientFolderPath)) {
-        fs.mkdirSync(clientFolderPath, { recursive: true });
-        console.log(`✅ Folder created: ${clientFolderPath}`);
-      } else {
-        console.log(`📁 Folder already exists: ${clientFolderPath}`);
-      }
-
-      cb(null, clientFolderPath); // Use the correct folder path
-    },
-    filename: function (req, file, cb) {
-      const ext = path.extname(file.originalname).toLowerCase();
-      let newName = '';
-
-      // Assign unique names based on field name
-      switch (file.fieldname) {
-        case 'aadharFront': newName = 'aadharfront' + ext; break;
-        case 'aadharBack': newName = 'aadharback' + ext; break;
-        case 'panCard': newName = 'pancard' + ext; break;
-        case 'bill': newName = 'bill' + ext; break;
-        case 'ownershipProof': newName = 'ownershipproof' + ext; break;
-        case 'cancelCheque': newName = 'cancelcheque' + ext; break;
-        case 'purchaseAgreement': newName = 'purchaseagreement' + ext; break;
-        case 'netMeteringAgreement': newName = 'netmeteringagreement' + ext; break;
-        default: newName = Date.now() + '-' + file.originalname; break;
-      }
-
-      cb(null, newName);
-    }
-  })
-}).fields([
-  { name: 'aadharFront', maxCount: 1 },
-  { name: 'aadharBack', maxCount: 1 },
-  { name: 'panCard', maxCount: 1 },
-  { name: 'bill', maxCount: 1 },
-  { name: 'ownershipProof', maxCount: 1 },
-  { name: 'cancelCheque', maxCount: 1 },
-  { name: 'purchaseAgreement', maxCount: 1 },
-  { name: 'netMeteringAgreement', maxCount: 1 },
-  { name: 'clientPhoto', maxCount: 1 }  // ✅ Add this line
-]);
+// ✅ Middlewares already set earlier — no need to duplicate
 
 
-// ✅ Handle the form submission with multiple file uploads
-app.post('/submit-client', multiUpload, async (req, res) => {
 
-  const data = req.body;
-  const files = req.files;
-//moved
-  if (req.body.photoData) {
-    const base64Data = req.body.photoData.replace(/^data:image\/png;base64,/, '');
-    const clientName = req.body.name.trim().toLowerCase().replace(/\s+/g, '_');
-    const clientFolder = path.join(uploadsBasePath, clientName);
-  
-    if (!fs.existsSync(clientFolder)) {
-      fs.mkdirSync(clientFolder, { recursive: true });
-    }
-  
-    const imagePath = path.join(clientFolder, 'clientPhoto.png');
-    fs.writeFileSync(imagePath, base64Data, 'base64');
-  }
-  const clientName = data.name.trim().toLowerCase().replace(/\s+/g, '_');
-  const clientFolder = path.join(uploadsBasePath, clientName);
+// ✅ Multer instance removed (OneDrive will be used instead)
+// This block is deprecated and should be replaced with direct upload to OneDrive API
 
-  // Create the client folder if it doesn't exist
-  if (!fs.existsSync(clientFolder)) {
-    fs.mkdirSync(clientFolder, { recursive: true });
-    console.log(`✅ Folder created: ${clientFolder}`);
-  } else {
-    console.log(`📁 Folder already exists: ${clientFolder}`);
-  }
+// Placeholder for OneDrive upload handling logic
+// File naming logic will be reused in upload routes
+const fieldNameToFileName = {
+  aadharFront: 'aadharfront',
+  aadharBack: 'aadharback',
+  panCard: 'pancard',
+  bill: 'bill',
+  ownershipProof: 'ownershipproof',
+  cancelCheque: 'cancelcheque',
+  purchaseAgreement: 'purchaseagreement',
+  netMeteringAgreement: 'netmeteringagreement',
+  clientPhoto: 'clientphoto'
+};
 
-  // Debugging the uploaded files object
-  console.log('Form Data:', data);
-  console.log('Uploaded Files:', files);
 
-  // Prepare the data object to save
-  const client = {
-    date: data.date,
-    name: data.name,
-    address: data.address,
-    mobile: data.mobile,
-    email: data.email,
-    kw: data.kw,
-    advance: data.advance,
-    totalCost: data.totalCost,
-    aadharFront: files?.aadharFront?.[0]?.path || '',
-    aadharBack: files?.aadharBack?.[0]?.path || '',
-    panCard: files?.panCard?.[0]?.path || '',
-    bill: files?.bill?.[0]?.path || '',
-    ownershipProof: files?.ownershipProof?.[0]?.path || '',
-    cancelCheque: files?.cancelCheque?.[0]?.path || '',
-    purchaseAgreement: files?.purchaseAgreement?.[0]?.path || '',
-    netMeteringAgreement: files?.netMeteringAgreement?.[0]?.path || ''
-  };
 
-  // Handle saving the data (for example, to an Excel file)
-  let workbook, worksheet;
-  if (fs.existsSync(excelFilePath)) {
-    workbook = xlsx.readFile(excelFilePath);
-    worksheet = workbook.Sheets[workbook.SheetNames[0]];
-  } else {
-    workbook = xlsx.utils.book_new();
-    worksheet = xlsx.utils.aoa_to_sheet([[
-      'Date', 'Name', 'Address', 'Mobile', 'Email', 'KW', 'Advance', 'Total Cost', 'Aadhar Front', 'Aadhar Back', 'Pan Card', 'Bill', 'Ownership Proof', 'Cancel Cheque', 'Purchase Agreement', 'Net Metering Agreement'
-    ]]);
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-  }
-
+app.post('/submit-client', async (req, res) => {
   try {
-    // Append new row to the sheet
-    const sheetData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
-    sheetData.push([
+    const data = req.body;
+    const files = req.files;
+    const clientName = data.name.trim().toLowerCase().replace(/\s+/g, '_');
+
+    // 🖼️ Upload client photo (base64)
+    if (data.photoData) {
+      const base64Data = data.photoData.replace(/^data:image\/png;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      await uploadToOneDriveFolder(clientName, 'clientPhoto', buffer, 'clientPhoto.png');
+    }
+
+    // 📤 Upload document files (Aadhar, PAN, etc.)
+    for (let field in files) {
+      const file = files[field][0] || files[field];
+      await uploadToOneDriveFolder(clientName, field, file.data, file.name);
+    }
+
+    // 📄 Prepare client data with OneDrive paths
+    const client = {
+      date: data.date,
+      name: data.name,
+      address: data.address,
+      mobile: data.mobile,
+      email: data.email,
+      kw: data.kw,
+      advance: data.advance,
+      totalCost: data.totalCost,
+      aadharFront: `uploads/${clientName}/aadharfront.png`,
+      aadharBack: `uploads/${clientName}/aadharback.png`,
+      panCard: `uploads/${clientName}/pancard.png`,
+      bill: `uploads/${clientName}/bill.png`,
+      ownershipProof: `uploads/${clientName}/ownershipproof.png`,
+      cancelCheque: `uploads/${clientName}/cancelcheque.png`,
+      purchaseAgreement: `uploads/${clientName}/purchaseagreement.png`,
+      netMeteringAgreement: `uploads/${clientName}/netmeteringagreement.png`
+    };
+
+    // 📊 Read TempData.xlsx from OneDrive
+    const { workbook, token } = await getWorkbookFromOneDrive('TempData.xlsx');
+    const sheet = workbook.getWorksheet('Client Data') || workbook.addWorksheet('Client Data');
+
+    sheet.addRow([
       client.date, client.name, client.address, client.mobile, client.email, client.kw,
-      client.advance, client.totalCost, client.aadharFront, client.aadharBack, client.panCard, client.bill, client.ownershipProof, client.cancelCheque,
-      client.purchaseAgreement, client.netMeteringAgreement
+      client.advance, client.totalCost, client.aadharFront, client.aadharBack, client.panCard, client.bill,
+      client.ownershipProof, client.cancelCheque, client.purchaseAgreement, client.netMeteringAgreement
     ]);
-  
-    const updatedSheet = xlsx.utils.aoa_to_sheet(sheetData);
-    workbook.Sheets[workbook.SheetNames[0]] = updatedSheet;
-  
-    // Write updated workbook to file
-    xlsx.writeFile(workbook, excelFilePath);
-    console.log('✅ Client data saved locally to Excel file.');
-  
-    res.send('✅ Client submitted successfully and files saved.');
-    
+
+    await uploadWorkbookToOneDrive('TempData.xlsx', workbook, token);
+    console.log('✅ Client data saved to OneDrive Excel.');
+
+    res.send('✅ Client submitted successfully and files saved to OneDrive.');
   } catch (err) {
-    console.error('❌ Error writing to Excel file:', err.message);
-    res.status(500).send('⚠️ Could not save data. Make sure TempData.xlsx is closed and not open in Excel.');
+    console.error('❌ Error:', err.message);
+    res.status(500).send('⚠️ Could not save data to OneDrive.');
   }
-})
+});
 
-// ✅ Search route to find if the client folder exists
-const uploadFolderPath = uploadsBasePath;
 
-app.get('/search-client', (req, res) => {
+// ✅ Search route to check if client folder exists in OneDrive
+app.get('/search-client', async (req, res) => {
   const name = req.query.name?.trim();
-
   if (!name) {
     return res.status(400).json({ error: 'No name provided' });
   }
 
-  fs.readdir(uploadsBasePath, { withFileTypes: true }, (err, files) => {
-    if (err) {
-      console.error('Error reading uploads folder:', err);
-      return res.status(500).json({ error: 'Internal Server Error' });
+  const clientName = name.toLowerCase().replace(/\s+/g, '_');
+
+  try {
+    const token = await getAccessToken();
+    const url = `https://graph.microsoft.com/v1.0/me/drive/root:/uploads/${clientName}`;
+    
+    await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    res.json({ found: true });
+  } catch (err) {
+    if (err.response?.status === 404) {
+      res.json({ found: false });
+    } else {
+      console.error('❌ Error checking OneDrive folder:', err.message);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-
-    const folderNames = files
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name.toLowerCase());
-
-    const clientExists = folderNames.includes(name.toLowerCase());
-
-    res.json({ found: clientExists });
-  });
+  }
 });
 
-// Route to handle adding timeline event for a client
-app.post('/add-timeline', express.json(), (req, res) => {
+
+// ✅ Route to handle adding timeline event for a client via OneDrive
+app.post('/add-timeline', express.json(), async (req, res) => {
   const { clientName, event, eventDate, eventDescription, status } = req.body;
 
-  const filePath = 'TempData.xlsx';
-  const workbook = new ExcelJS.Workbook();
+  try {
+    const { workbook, token } = await getWorkbookFromOneDrive('TempData.xlsx');
+    let worksheet = workbook.getWorksheet('Timeline');
 
-  // Check if TempData.xlsx already exists
-  if (fs.existsSync(filePath)) {
-    workbook.xlsx.readFile(filePath).then(() => {
-      let worksheet = workbook.getWorksheet('Timeline'); // Look for the Timeline sheet
-
-      // If the "Timeline" sheet doesn't exist, create it
-      if (!worksheet) {
-        worksheet = workbook.addWorksheet('Timeline');
-        worksheet.addRow(['Client Name', 'Event', 'Event Date', 'Event Description', 'Status']);
-      }
-
-      // Add the new timeline event
-      worksheet.addRow([clientName, event, eventDate, eventDescription, status]);
-
-      // Save the Excel file with the new timeline event
-      return workbook.xlsx.writeFile(filePath);
-    }).then(() => {
-      res.send('Timeline event added successfully!');
-    }).catch((error) => {
-      console.error('Error adding timeline event:', error);
-      res.status(500).send('Error adding timeline event.');
-    });
-  } else {
-    // If TempData.xlsx doesn't exist, create it and add Timeline sheet
-    const worksheet = workbook.addWorksheet('Timeline');
-    worksheet.addRow(['Client Name', 'Event', 'Event Date', 'Event Description', 'Status']);
-    worksheet.addRow([clientName, event, eventDate, eventDescription, status]);
-    
-    workbook.xlsx.writeFile(filePath).then(() => {
-      res.send('Timeline event added successfully!');
-    }).catch((error) => {
-      console.error('Error creating new Excel file:', error);
-      res.status(500).send('Error creating new Excel file.');
-    });
-  }
-});
-
-// Multer setup for document uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Ensure the 'uploads' folder exists
-    const uploadDir = 'uploads';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
+    // Create Timeline sheet if it doesn't exist
+    if (!worksheet) {
+      worksheet = workbook.addWorksheet('Timeline');
+      worksheet.addRow(['Client Name', 'Event', 'Event Date', 'Event Description', 'Status']);
     }
-    cb(null, uploadDir); // Set the folder where files will be uploaded
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Set unique filenames based on current timestamp
+
+    // Add the new timeline event
+    worksheet.addRow([clientName, event, eventDate, eventDescription, status]);
+
+    // Save back to OneDrive
+    await uploadWorkbookToOneDrive('TempData.xlsx', workbook, token);
+
+    res.send('✅ Timeline event added successfully to OneDrive!');
+  } catch (error) {
+    console.error('❌ Error adding timeline event:', error.message);
+    res.status(500).send('❌ Error adding timeline event to OneDrive.');
   }
 });
-const upload = multer({ storage: storage });
 
-// New route for document upload (handles multiple files)
-app.post('/submit-documents', upload.fields([
-  { name: 'aadharFront', maxCount: 1 },
-  { name: 'aadharBack', maxCount: 1 },
-  { name: 'panCard', maxCount: 1 },
-  { name: 'bill', maxCount: 1 },
-  { name: 'ownershipProof', maxCount: 1 },
-  { name: 'cancelCheque', maxCount: 1 },
-  { name: 'purchaseAgreement', maxCount: 1 },
-  { name: 'netMeteringAgreement', maxCount: 1 }
-]), (req, res) => {
-  if (!req.files) {
+
+app.post('/submit-documents', async (req, res) => {
+  const clientName = req.body.name?.trim().toLowerCase().replace(/\s+/g, '_');
+  const files = req.files;
+
+  if (!files || Object.keys(files).length === 0) {
     return res.status(400).send('No files were uploaded.');
   }
 
-  // You can access the uploaded files here
-  console.log(req.files);  // Log all uploaded files (for debugging)
+  try {
+    for (let field in files) {
+      const file = files[field][0] || files[field];
+      await uploadToOneDriveFolder(clientName, field, file.data, file.name);
+    }
 
-  // If needed, save the file information to a database or Excel file
-  // Example: Save file paths or names in your database
-
-  // Send success response
-  res.send('Documents uploaded successfully!');
+    console.log('📤 Uploaded files:', Object.keys(files));
+    res.send('✅ Documents uploaded successfully to OneDrive!');
+  } catch (err) {
+    console.error('❌ Upload error:', err.message);
+    res.status(500).send('❌ Failed to upload documents to OneDrive.');
+  }
 });
 
 
-// Define the uploads folder path
-const uploadFolder = path.join('C:', 'Users', 'JK SOLAR', 'OneDrive', 'CRM_PWA', 'uploads');
 
-// List of required files
-const requiredFiles = [
-  'AadharFront.jpg',
-  'AadharBack.jpg',
-  'PanCard.jpg',
-  'Bill.jpg',
-  'OwnershipProof.jpg',
-  'CancelCheque.jpg',
-  'PurchaseAgreement.pdf',
-  'NetMeteringAgreement.pdf'
-];
-
-// Serve static files from the uploads folder
-app.use('/uploads', express.static(uploadFolder));
-
-// Route to return file status for a specific client
-// Define the Excel file path
-// Route to return file status for a specific client
 app.get('/file-status/:clientName', async (req, res) => {
   const clientName = req.params.clientName.trim().toLowerCase();
-  const filePaths = [
+  const fileFields = [
     'AadharFront',
     'AadharBack',
     'PanCard',
@@ -339,48 +212,41 @@ app.get('/file-status/:clientName', async (req, res) => {
     let clientInfo = null;
     let fileStatus = [];
 
-    if (fs.existsSync(excelFilePath)) {
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile(excelFilePath);
-      const worksheet = workbook.getWorksheet('Client Data');
+    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
+    const worksheet = workbook.getWorksheet('Client Data');
 
-      worksheet.eachRow((row) => {
-        const rowClientName = (row.getCell(2).value || '').toString().trim().toLowerCase(); // Ensure you’re trimming and handling cases
-  console.log(`Row client name: '${rowClientName}' (Excel data) vs '${clientName}' (searched name)`); // Debugging log
+    worksheet.eachRow((row, rowIndex) => {
+      const rowClientName = (row.getCell(2).value || '').toString().trim().toLowerCase();
 
-        if (rowClientName === clientName) {
-          clientInfo = {
-            name: row.getCell(2).value || '',    // B
-            address: row.getCell(3).value || '', // C
-            mobile: row.getCell(4).value || '',  // D
-            email: row.getCell(5).value || '',   // E
-            kw: row.getCell(6).value || ''       // F
-          };
+      console.log(`🔍 Excel: '${rowClientName}' vs Search: '${clientName}'`);
 
-          // Now, check file paths in columns I to P (Aadhar Front, Aadhar Back, etc.)
-          filePaths.forEach((filePath, index) => {
-            const filePathInExcel = row.getCell(9 + index).value?.toString().trim(); // Columns I to P
-            const exists = fs.existsSync(filePathInExcel); // Check if file exists
+      if (rowClientName === clientName) {
+        clientInfo = {
+          name: row.getCell(2).value || '',
+          address: row.getCell(3).value || '',
+          mobile: row.getCell(4).value || '',
+          email: row.getCell(5).value || '',
+          kw: row.getCell(6).value || ''
+        };
 
-            const label = filePath
-              .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-              .replace(/^./, str => str.toUpperCase()) // Capitalize the first letter
-              .trim();
+        // Loop over columns I to P (9 to 16)
+        fileFields.forEach((field, index) => {
+          const pathInExcel = row.getCell(9 + index).value?.toString().trim() || '';
+          const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
 
-            fileStatus.push({
-              file: filePath,
-              label: label,
-              exists: exists
-            });
+          fileStatus.push({
+            file: field,
+            label: label,
+            exists: !!pathInExcel  // We assume true if there's a path (skip fs.existsSync)
           });
-        }
-      });
-    }
+        });
+      }
+    });
 
     if (clientInfo) {
       return res.json({
         files: fileStatus,
-        clientInfo: clientInfo || {}
+        clientInfo: clientInfo
       });
     } else {
       return res.status(404).json({ error: 'Client not found' });
@@ -393,27 +259,47 @@ app.get('/file-status/:clientName', async (req, res) => {
 });
 
 
-// 🧪 Just to view all status manually
-app.get('/check-files', (req, res) => {
-  res.send(`<pre>${JSON.stringify(topLevelFileStatus, null, 2)}</pre>`);
+// 🔍 Route to view status of top-level uploaded documents in OneDrive (example only)
+app.get('/check-files', async (req, res) => {
+  try {
+    const token = await getAccessToken();
+
+    const fileList = [
+      'uploads/demo/aadharfront.png',
+      'uploads/demo/pancard.png',
+      'uploads/demo/bill.png'
+    ];
+
+    const results = [];
+
+    for (const path of fileList) {
+      const encodedPath = encodeURIComponent(path);
+      const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${encodedPath}`;
+      try {
+        await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+        results.push({ file: path, exists: true });
+      } catch (err) {
+        results.push({ file: path, exists: false });
+      }
+    }
+
+    res.send(`<pre>${JSON.stringify(results, null, 2)}</pre>`);
+  } catch (err) {
+    console.error('❌ Error in /check-files:', err.message);
+    res.status(500).send('Failed to check file statuses.');
+  }
 });
 
-// 📅 View timeline of a client
+
+// 📅 View timeline of a client from OneDrive Excel
 app.get('/view-timeline/:clientName', async (req, res) => {
   const rawClientName = req.params.clientName || '';
   const clientName = rawClientName.trim().toLowerCase();
-  const filePath = 'TempData.xlsx';
 
   console.log(`🔍 Looking for timeline for client: "${clientName}"`);
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Excel file not found' });
-  }
-
-  const workbook = new ExcelJS.Workbook();
-
   try {
-    await workbook.xlsx.readFile(filePath);
+    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
     const worksheet = workbook.getWorksheet('Client Data');
 
     if (!worksheet) {
@@ -425,7 +311,7 @@ app.get('/view-timeline/:clientName', async (req, res) => {
     worksheet.eachRow((row, rowNumber) => {
       const rowValues = row.values;
       const clientNameFromRow = rowValues[2]; // Column B = Name
-      const event = rowValues[3]; // Column C = Event
+      const event = rowValues[3];             // Column C = Event
 
       if (
         clientNameFromRow &&
@@ -433,7 +319,7 @@ app.get('/view-timeline/:clientName', async (req, res) => {
         event && event.trim() !== ''
       ) {
         clientTimeline.push({
-          event: event,                     // C
+          event: event,
           eventDate: rowValues[4],         // D
           eventDescription: rowValues[5],  // E
           status: rowValues[6]             // F
@@ -447,23 +333,18 @@ app.get('/view-timeline/:clientName', async (req, res) => {
 
     res.json(clientTimeline);
   } catch (error) {
-    console.error('❌ Error reading Excel file:', error);
+    console.error('❌ Error reading Excel from OneDrive:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-// 🧾 Get client info (basic details)
+
+// 🧾 Get client info (basic details) from OneDrive
 app.get('/client-info/:clientName', async (req, res) => {
   const clientName = req.params.clientName.trim().toLowerCase();
-  const filePath = 'TempData.xlsx';
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Excel file not found' });
-  }
 
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
+    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
     const sheet = workbook.getWorksheet('Client Data');
 
     if (!sheet) {
@@ -492,21 +373,13 @@ app.get('/client-info/:clientName', async (req, res) => {
       res.status(404).json({ error: 'Client not found' });
     }
   } catch (err) {
-    console.error('❌ Error reading client info:', err);
+    console.error('❌ Error reading client info from OneDrive:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-//aaplication timeline function
-// Set up middleware for parsing form data
-//aaplication timeline function
-// Set up middleware for parsing form data
-//aaplication timeline function
-// Set up middleware for parsing form data
-//aaplication timeline function
-// Set up middleware for parsing form data
-//aaplication timeline function
-// Set up middleware for parsing form data
+
+
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -514,41 +387,29 @@ app.use(express.json());
 // Serve static files (like your HTML, CSS, etc.)
 app.use(express.static('public'));
 
-// Function to initialize Excel file if it doesn't exist
-//function initializeApplicationExcelFile() {
-  //if (!fs.existsSync(applicationExcelFilePath)) {
-  //  const wb = xlsx.utils.book_new();
-   // const ws = xlsx.utils.aoa_to_sheet([
-   //   ['Applied KW', 'Applied on PM Surya', 'Application DHBVN', 'Load/Name Change/Reduction/New Connection']
-   // ]);
-   // xlsx.utils.book_append_sheet(wb, ws, 'Application Timeline');
-   // xlsx.writeFile(wb, applicationExcelFilePath);
-   // console.log('✅ Created new applicationTimeline.xlsx file');
-//  } else {
- //   console.log('📂 applicationTimeline.xlsx already exists');
- // }
 
 
-// Call the initializer when the server starts
-//initializeApplicationExcelFile();
-
-// 📝 Route to save timeline data (with upload.none() to parse FormData without files)
-const Excel = require('exceljs');
-const tempDataPath = 'C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx';
-
-app.post('/save-timeline', upload.none(), async (req, res) => {
-  const { appliedKW, appliedOnPMSurya, applicationDHBVN, loadChangeReductionNewConnection, clientName } = req.body;
+// 📝 Route to save timeline data to OneDrive Excel
+app.post('/save-timeline', async (req, res) => {
+  const {
+    appliedKW,
+    appliedOnPMSurya,
+    applicationDHBVN,
+    loadChangeReductionNewConnection,
+    clientName
+  } = req.body;
 
   if (!clientName) return res.status(400).json({ error: 'Client name missing' });
 
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(tempDataPath);
+    const { workbook, token } = await getWorkbookFromOneDrive('TempData.xlsx');
     const sheet = workbook.getWorksheet('Client Data');
+
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
     let found = false;
 
-    sheet.eachRow((row, rowNumber) => {
+    sheet.eachRow((row) => {
       const nameCell = row.getCell(2).value?.toString().toLowerCase().trim(); // Column B
 
       if (nameCell === clientName.toLowerCase().trim()) {
@@ -560,32 +421,30 @@ app.post('/save-timeline', upload.none(), async (req, res) => {
       }
     });
 
-    if (!found) {
-      return res.status(404).json({ error: 'Client not found in Excel' });
-    }
+    if (!found) return res.status(404).json({ error: 'Client not found in Excel' });
 
-    await workbook.xlsx.writeFile(tempDataPath);
+    await uploadWorkbookToOneDrive('TempData.xlsx', workbook, token);
 
-    res.json({ message: 'Timeline data saved successfully!' });
+    res.json({ message: '✅ Timeline data saved successfully to OneDrive!' });
   } catch (err) {
-    console.error('Error saving timeline data:', err);
+    console.error('❌ Error saving timeline data:', err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 
 
-
-
-// Serve the timeline data as JSON
-// Route to fetch the application timeline for a specific client
+// Route to fetch the application timeline for a specific client from OneDrive
 app.get('/application-timeline/:clientName', async (req, res) => {
   const clientName = req.params.clientName.toLowerCase().trim();
 
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(tempDataPath);
+    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
     const sheet = workbook.getWorksheet('Client Data');
+
+    if (!sheet) {
+      return res.status(404).json({ error: 'Client Data sheet not found' });
+    }
 
     let result = null;
 
@@ -608,7 +467,7 @@ app.get('/application-timeline/:clientName', async (req, res) => {
       res.status(404).json({ error: 'Client not found' });
     }
   } catch (err) {
-    console.error('Error loading timeline data:', err);
+    console.error('❌ Error loading timeline data from OneDrive:', err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -619,87 +478,102 @@ app.get('/application-timeline/:clientName', async (req, res) => {
 
 // Add this route in your Express server (server.js)
 
-app.get('/file-status/:clientName', (req, res) => {
-  const clientName = req.params.clientName.toLowerCase(); // Make sure client name is consistent
-  const filePath = path.join(__dirname, 'uploads', clientName, 'TempData.xlsx'); // Update the path if necessary
-  
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ message: 'Client not found' });
+app.get('/file-status/:clientName', async (req, res) => {
+  const clientName = req.params.clientName.toLowerCase().trim();
+  const folder = `uploads/${clientName}`;
+  const fileFields = [
+    'aadharfront.png',
+    'aadharback.png',
+    'pancard.png',
+    'bill.png',
+    'ownershipproof.png',
+    'cancelcheque.png',
+    'purchaseagreement.png',
+    'netmeteringagreement.png'
+  ];
+
+  try {
+    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
+    const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ message: 'Client Data sheet not found' });
+
+    let clientInfo = null;
+
+    sheet.eachRow((row) => {
+      const rowName = row.getCell(2).value?.toString().toLowerCase().trim(); // Column B = Name
+      if (rowName === clientName) {
+        clientInfo = {
+          name: row.getCell(2).value || '',
+          address: row.getCell(3).value || '',
+          mobile: row.getCell(4).value || '',
+          email: row.getCell(5).value || '',
+          kw: row.getCell(6).value || ''
+        };
+      }
+    });
+
+    if (!clientInfo) {
+      return res.status(404).json({ message: 'No data found for the client' });
+    }
+
+    const token = await getAccessToken();
+
+    // 🧾 Check file existence for each expected document
+    const files = await Promise.all(
+      fileFields.map(async (file) => {
+        const fileUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/${file}`;
+        try {
+          await axios.get(fileUrl, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          return { file: file, exists: true };
+        } catch (err) {
+          return { file: file, exists: false };
+        }
+      })
+    );
+
+    res.json({ clientInfo, files });
+  } catch (err) {
+    console.error('❌ Error in file-status route:', err.message);
+    res.status(500).json({ message: 'Internal server error' });
   }
-
-  // Load the client data from the excel file (update if needed to match your logic)
-  const workbook = XLSX.readFile(filePath);
-  const worksheet = workbook.Sheets['Client Data'];
-  const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-  // Fetch client-specific data based on logic
-  const clientData = jsonData.find(client => client.Name.toLowerCase() === clientName);
-  
-  if (!clientData) {
-    return res.status(404).json({ message: 'No data found for the client' });
-  }
-
-  // Respond with client data
-  res.json({
-    clientInfo: {
-      name: clientData.Name,
-      address: clientData.Address,
-      mobile: clientData.Mobile,
-      email: clientData.Email,
-      kw: clientData.KW
-    },
-    files: [
-      { file: 'aadharfront.png', exists: fs.existsSync(path.join(filePath, 'aadharfront.png')) },
-      { file: 'aadharback.png', exists: fs.existsSync(path.join(filePath, 'aadharback.png')) },
-      { file: 'pancard.png', exists: fs.existsSync(path.join(filePath, 'pancard.png')) },
-      { file: 'bill.png', exists: fs.existsSync(path.join(filePath, 'bill.png')) },
-      { file: 'ownershipproof.png', exists: fs.existsSync(path.join(filePath, 'ownershipproof.png')) },
-      { file: 'cancelcheque.png', exists: fs.existsSync(path.join(filePath, 'cancelcheque.png')) },
-      { file: 'purchaseagreement.png', exists: fs.existsSync(path.join(filePath, 'purchaseagreement.png')) },
-      { file: 'netmeteringagreement.png', exists: fs.existsSync(path.join(filePath, 'netmeteringagreement.png')) }
-    ]
-  });
 });
 
-// Sample route to get timeline data
-// Correct route to get application timeline for a client
+
+// ✅ Corrected route to get application timeline for a client from OneDrive
 app.get('/application-timeline/:clientName', async (req, res) => {
-  const rawClientName = req.params.clientName; // Use params for URL parameters
+  const rawClientName = req.params.clientName;
   const clientName = rawClientName ? rawClientName.trim().toLowerCase() : '';
 
   if (!clientName) {
     return res.status(400).json({ error: 'Client name is required' });
   }
 
-  const filePath = 'C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx'; // Path to the Excel file
-
-  // Check if file exists
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Excel file not found' });
-  }
-
-  const workbook = new ExcelJS.Workbook();
-  
   try {
-    await workbook.xlsx.readFile(filePath);
+    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
     const worksheet = workbook.getWorksheet('Client Data');
+
+    if (!worksheet) {
+      return res.status(404).json({ error: 'Client Data sheet not found' });
+    }
 
     const clientTimeline = [];
 
     worksheet.eachRow((row) => {
       const rowValues = row.values;
-      const clientNameFromRow = rowValues[2]; // Column B = Name
-      const appliedKW = rowValues[17]; // Column Q = Applied KW
-      const appliedOnPMSurya = rowValues[18]; // Column R = Applied on PM Surya
-      const applicationDHBVN = rowValues[19]; // Column S = Application DHBVN
-      const loadChangeReductionNewConnection = rowValues[20]; // Column T = Load/Name Change/Reduction/New Connection
+      const clientNameFromRow = rowValues[2];
+      const appliedKW = rowValues[17]; // Column Q
+      const appliedOnPMSurya = rowValues[18]; // Column R
+      const applicationDHBVN = rowValues[19]; // Column S
+      const loadChangeReductionNewConnection = rowValues[20]; // Column T
 
       if (clientNameFromRow && clientNameFromRow.toLowerCase().trim() === clientName) {
         clientTimeline.push({
-          appliedKW: appliedKW,
-          appliedOnPMSurya: appliedOnPMSurya,
-          applicationDHBVN: applicationDHBVN,
-          loadChangeReductionNewConnection: loadChangeReductionNewConnection
+          appliedKW,
+          appliedOnPMSurya,
+          applicationDHBVN,
+          loadChangeReductionNewConnection
         });
       }
     });
@@ -708,12 +582,13 @@ app.get('/application-timeline/:clientName', async (req, res) => {
       return res.status(404).json({ error: 'No application timeline found for this client' });
     }
 
-    res.json(clientTimeline); // Send timeline data as response
+    res.json(clientTimeline);
   } catch (err) {
-    console.error('❌ Error reading Excel file:', err);
+    console.error('❌ Error reading application timeline from OneDrive:', err.message);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 //project status timeline excel
 const projectFields = [
@@ -726,9 +601,9 @@ app.post('/save-project-status', express.urlencoded({ extended: true }), async (
   if (!clientName) return res.status(400).json({ error: 'Client name missing' });
 
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
+    const { workbook, token } = await getWorkbookFromOneDrive('TempData.xlsx');
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
     let updated = false;
 
@@ -747,26 +622,27 @@ app.post('/save-project-status', express.urlencoded({ extended: true }), async (
       return res.status(404).json({ error: 'Client not found in Excel' });
     }
 
-    await workbook.xlsx.writeFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
-    res.json({ message: 'Project status saved successfully' });
+    await uploadWorkbookToOneDrive('TempData.xlsx', workbook, token);
+    res.json({ message: '✅ Project status saved successfully to OneDrive' });
   } catch (err) {
-    console.error('❌ Error saving project status:', err);
+    console.error('❌ Error saving project status:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 app.get('/project-status/:clientName', async (req, res) => {
   const clientName = req.params.clientName.toLowerCase().trim();
 
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
+    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
     let result = null;
 
     sheet.eachRow(row => {
-      const name = row.getCell(2).value?.toString().toLowerCase().trim();
+      const name = row.getCell(2).value?.toString().toLowerCase().trim(); // Column B
       if (name === clientName) {
         result = {
           Civil: row.getCell(21)?.value || '',
@@ -787,37 +663,38 @@ app.get('/project-status/:clientName', async (req, res) => {
     if (!result) return res.status(404).json({ error: 'Client not found' });
     res.json({ status: result });
   } catch (err) {
-    console.error('❌ Error loading project status:', err);
+    console.error('❌ Error loading project status from OneDrive:', err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-//Payemnt timeline Autofetch route
+
+// 💸 Payment timeline autofetch route from OneDrive
 app.get('/payment-status/:clientName', async (req, res) => {
   const clientName = req.params.clientName.toLowerCase().trim();
 
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
+    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
     let result = null;
 
     sheet.eachRow((row) => {
-      const name = row.getCell(2).value?.toString().toLowerCase().trim();
+      const name = row.getCell(2).value?.toString().toLowerCase().trim(); // Column B
       if (name === clientName) {
         result = {
-          totalCost: row.getCell(8)?.value || '',
-          advance: row.getCell(7)?.value || '',
+          totalCost: row.getCell(8)?.value || '',   // Column H
+          advance: row.getCell(7)?.value || '',     // Column G
           projectStatus: {
-            Civil: row.getCell(21)?.value || '',
-            NetMetering: row.getCell(31)?.value || ''
+            Civil: row.getCell(21)?.value || '',       // Column U
+            NetMetering: row.getCell(31)?.value || ''  // Column AE
           },
           saved: {
-            installment2: row.getCell(32)?.value || '',
-            installment3: row.getCell(33)?.value || '',
-            finalPayment: row.getCell(34)?.value || '',
-            balance: row.getCell(35)?.value || ''
+            installment2: row.getCell(32)?.value || '',   // AF
+            installment3: row.getCell(33)?.value || '',   // AG
+            finalPayment: row.getCell(34)?.value || '',   // AH
+            balance: row.getCell(35)?.value || ''         // AI
           }
         };
       }
@@ -825,71 +702,60 @@ app.get('/payment-status/:clientName', async (req, res) => {
 
     if (!result) return res.status(404).json({ error: 'Client not found' });
     res.json(result);
-
   } catch (err) {
-    console.error('Error reading payment data:', err);
+    console.error('❌ Error reading payment data from OneDrive:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
 
-//save payment data to excel
+// 💾 Save payment status to OneDrive Excel
 app.post('/save-payment-status', express.urlencoded({ extended: true }), async (req, res) => {
   const clientName = req.body.clientName?.toLowerCase().trim();
   if (!clientName) return res.status(400).json({ error: 'Client name missing' });
 
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
+    const { workbook, token } = await getWorkbookFromOneDrive('TempData.xlsx');
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
     let updated = false;
 
     sheet.eachRow(row => {
       const nameCell = row.getCell(2).value?.toString().toLowerCase().trim(); // Column B
       if (nameCell === clientName) {
-        row.getCell(32).value = req.body.installment2 || '';
-        row.getCell(33).value = req.body.installment3 || '';
-        row.getCell(34).value = req.body.finalPayment || '';
-        row.getCell(35).value = req.body.balance || '';
+        row.getCell(32).value = req.body.installment2 || '';   // AF
+        row.getCell(33).value = req.body.installment3 || '';   // AG
+        row.getCell(34).value = req.body.finalPayment || '';   // AH
+        row.getCell(35).value = req.body.balance || '';        // AI
         updated = true;
       }
     });
 
     if (!updated) return res.status(404).json({ error: 'Client not found' });
 
-    await workbook.xlsx.writeFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
-    res.json({ message: 'Payment status saved successfully' });
+    await uploadWorkbookToOneDrive('TempData.xlsx', workbook, token);
+    res.json({ message: '✅ Payment status saved successfully to OneDrive' });
   } catch (err) {
-    console.error('Error saving payment status:', err);
+    console.error('❌ Error saving payment status:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
 
-//Stocksheet
-// Load workbook
-async function loadWorkbook() {
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.readFile(FILE_PATH);
-  return wb;
+
+// 🧾 Load workbook from OneDrive
+async function loadWorkbookFromOneDrive(fileName) {
+  const { workbook, token } = await getWorkbookFromOneDrive(fileName);
+  return { workbook, token };
 }
 
-
-
-// Load workbook
-// Load and Save Excel Helpers
-async function loadWorkbook() {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(FILE_PATH);
-  return workbook;
+// 💾 Save workbook back to OneDrive
+async function saveWorkbookToOneDrive(fileName, workbook, token) {
+  await uploadWorkbookToOneDrive(fileName, workbook, token);
 }
 
-async function saveWorkbook(workbook) {
-  await workbook.xlsx.writeFile(FILE_PATH);
-}
-
-// ✅ Find or create row for material in "Stock April"
+// ✅ Find or create row for material in stock sheet
 function findOrCreateMaterialRow(sheet, material) {
   for (let i = 3; i <= sheet.rowCount; i++) {
     const cell = sheet.getCell(`A${i}`);
@@ -902,7 +768,8 @@ function findOrCreateMaterialRow(sheet, material) {
 }
 
 
-// ✅ Stock In
+
+// ✅ Stock In (OneDrive-powered)
 app.post('/submit-stock-in', async (req, res) => {
   const { date, material, invoice, quantity } = req.body;
   if (!date || !material || !invoice || !quantity) {
@@ -910,7 +777,8 @@ app.post('/submit-stock-in', async (req, res) => {
   }
 
   try {
-    const workbook = await loadWorkbook();
+    const fileName = 'Stock Sheet.xlsx';
+    const { workbook, token } = await loadWorkbookFromOneDrive(fileName);
 
     const monthNumber = ('0' + (new Date(date).getMonth() + 1)).slice(-2);
     const stockSheetName = `Stock ${monthNumber}`;
@@ -919,7 +787,7 @@ app.post('/submit-stock-in', async (req, res) => {
     const sheetIn = getOrCreateSheet(workbook, stockInSheetName);
     const stockSheet = getOrCreateSheet(workbook, stockSheetName);
 
-    // Save in stock in sheet
+    // Save to stock in sheet
     sheetIn.addRow([date, material, invoice, quantity]);
 
     // Ensure date columns exist
@@ -928,42 +796,38 @@ app.post('/submit-stock-in', async (req, res) => {
     // Retry finding date columns
     let dateCols = findDateColumns(stockSheet, date);
 
-    // Retry fallback
     if (!dateCols) {
-      await saveWorkbook(workbook);
+      await saveWorkbookToOneDrive(fileName, workbook, token);
 
-
-      await workbook.xlsx.readFile(FILE_PATH);
-      const retrySheet = workbook.getWorksheet(stockSheetName);
-      createMissingDates(retrySheet, date); // try creating again just in case
+      const retry = await loadWorkbookFromOneDrive(fileName);
+      const retrySheet = retry.workbook.getWorksheet(stockSheetName);
+      createMissingDates(retrySheet, date);
       dateCols = findDateColumns(retrySheet, date);
-    }
-
-    if (!dateCols) {
-      console.error('❌ Still cannot find columns after re-creating');
-      return res.status(500).send('❌ Date columns missing.');
+      if (!dateCols) {
+        console.error('❌ Still cannot find columns after re-creating');
+        return res.status(500).send('❌ Date columns missing.');
+      }
     }
 
     const materialRow = findOrCreateMaterialRow(stockSheet, material);
     const { inCol } = dateCols;
-
     const existingQty = parseFloat(materialRow.getCell(inCol).value) || 0;
     materialRow.getCell(inCol).value = existingQty + parseFloat(quantity);
 
     await updateCurrentStock(workbook, stockSheet, material);
-    await saveWorkbook(workbook);
+    await saveWorkbookToOneDrive(fileName, workbook, token);
 
-
-    res.send('✅ Stock In recorded & Stock Sheet updated');
+    res.send('✅ Stock In recorded & Stock Sheet updated in OneDrive');
   } catch (err) {
-    console.error(err);
-    res.status(500).send('❌ Error writing Excel');
+    console.error('❌ Error during Stock In:', err.message);
+    res.status(500).send('❌ Error writing to OneDrive Excel');
   }
 });
 
 
 
-// ✅ Stock Out
+
+// ✅ Stock Out (OneDrive-powered)
 app.post('/submit-stock-out', async (req, res) => {
   const { date, material, quantity, remarks } = req.body;
   if (!date || !material || !quantity) {
@@ -971,7 +835,8 @@ app.post('/submit-stock-out', async (req, res) => {
   }
 
   try {
-    const workbook = await loadWorkbook();
+    const fileName = 'Stock Sheet.xlsx';
+    const { workbook, token } = await loadWorkbookFromOneDrive(fileName);
 
     const monthNumber = ('0' + (new Date(date).getMonth() + 1)).slice(-2);
     const stockSheetName = `Stock ${monthNumber}`;
@@ -983,25 +848,23 @@ app.post('/submit-stock-out', async (req, res) => {
     // Save to stock out sheet
     sheetOut.addRow([date, material, quantity, remarks || '']);
 
-    // Create missing date columns
+    // Ensure date columns exist
     createMissingDates(stockSheet, date);
 
     // Retry finding date columns
     let dateCols = findDateColumns(stockSheet, date);
 
     if (!dateCols) {
-      await saveWorkbook(workbook);
+      await saveWorkbookToOneDrive(fileName, workbook, token);
 
-
-      await workbook.xlsx.readFile(FILE_PATH);
-      const retrySheet = workbook.getWorksheet(stockSheetName);
-      createMissingDates(retrySheet, date); // reapply
+      const retry = await loadWorkbookFromOneDrive(fileName);
+      const retrySheet = retry.workbook.getWorksheet(stockSheetName);
+      createMissingDates(retrySheet, date);
       dateCols = findDateColumns(retrySheet, date);
-    }
-
-    if (!dateCols) {
-      console.error('❌ Still cannot find columns after re-creating');
-      return res.status(500).send('❌ Date columns missing.');
+      if (!dateCols) {
+        console.error('❌ Still cannot find columns after re-creating');
+        return res.status(500).send('❌ Date columns missing.');
+      }
     }
 
     const materialRow = findOrCreateMaterialRow(stockSheet, material);
@@ -1011,17 +874,15 @@ app.post('/submit-stock-out', async (req, res) => {
     materialRow.getCell(outCol).value = existingOut + parseFloat(quantity);
 
     await updateCurrentStock(workbook, stockSheet, material);
-    await saveWorkbook(workbook);
+    await saveWorkbookToOneDrive(fileName, workbook, token);
 
-
-
-
-    res.send('✅ Stock Out recorded & Stock Sheet updated');
+    res.send('✅ Stock Out recorded & Stock Sheet updated in OneDrive');
   } catch (err) {
-    console.error(err);
-    res.status(500).send('❌ Error writing Excel');
+    console.error('❌ Error during Stock Out:', err.message);
+    res.status(500).send('❌ Error writing to OneDrive Excel');
   }
 });
+
 
 
 
@@ -1047,8 +908,7 @@ function getOrCreateSheet(workbook, sheetName) {
 
 
 
-// ✅ Update Current Stock in Stock April (Column C)
-// ✅ Update Current Stock correctly based on monthly sheets
+// ✅ Update Current Stock in Stock Sheet (Column C)
 async function updateCurrentStock(workbook, stockSheet, material) {
   const materialRow = findOrCreateMaterialRow(stockSheet, material);
 
@@ -1068,34 +928,11 @@ async function updateCurrentStock(workbook, stockSheet, material) {
   const currentStock = openingStock + totalIn - totalOut;
   materialRow.getCell(3).value = currentStock; // Column C (Current Stock)
 
-  updateMinStockAndHighlight(stockSheet, materialRow); 
-
-  await saveWorkbook(workbook);
-
-
-
+  updateMinStockAndHighlight(stockSheet, materialRow);
+  // ❌ No need to saveWorkbook here — save happens in route handler after this call
 }
 
-// 🧠 Helper to update Min Stock (D) and Red Color
-function updateMinStockAndHighlight(sheet, row) {
-  const openingStock = parseFloat(row.getCell(2).value) || 0;
-  const closingStock = parseFloat(row.getCell(3).value) || 0;
-
-  const minStock = +(openingStock * 0.10).toFixed(2);
-  row.getCell(4).value = minStock; // Column D
-
-  if (closingStock <= minStock) {
-    const redFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
-    row.getCell(1).fill = redFill;
-    row.getCell(4).fill = redFill;
-  } else {
-    row.getCell(1).fill = {};
-    row.getCell(4).fill = {};
-  }
-}
-
-
-// ✅ Update Min Stock (10% of Opening) and highlight red if needed
+// ✅ Update Min Stock (10% of Opening Stock) and highlight red if needed
 function updateMinStockAndHighlight(sheet, row) {
   const openingStock = parseFloat(row.getCell(2).value) || 0;  // Column B
   const closingStock = parseFloat(row.getCell(3).value) || 0;  // Column C
@@ -1115,45 +952,41 @@ function updateMinStockAndHighlight(sheet, row) {
   };
 
   if (closingStock <= minStock) {
-    row.getCell(1).fill = redFill;  // Column A (material)
-    row.getCell(4).fill = redFill;  // Column D (Min stock)
+    row.getCell(1).fill = redFill;  // Material
+    row.getCell(4).fill = redFill;  // Min Stock
   } else {
     row.getCell(1).fill = clearFill;
     row.getCell(4).fill = clearFill;
   }
 }
 
-// ✅ Setup Stock Sheet structure with proper A-D columns
+// ✅ Setup Stock Sheet (Initial columns and per-day date blocks)
 function setupStockSheet(sheet, year, month) {
-  // Row 1: Headings
   sheet.getCell('A1').value = 'Material';
   sheet.getCell('B1').value = 'Opening Stock';
   sheet.getCell('C1').value = 'Current Stock';
   sheet.getCell('D1').value = 'Min Stock';
 
-  // Row 2: Leave A-D cells blank for now (only E onwards will have In/Out/Remarks)
+  // Row 2 left blank for A–D
   sheet.getCell('A2').value = '';
   sheet.getCell('B2').value = '';
   sheet.getCell('C2').value = '';
   sheet.getCell('D2').value = '';
 
-  // Calculate how many days in the month
   let daysInMonth = monthDays[parseInt(month)];
   if (parseInt(month) === 2 && isLeapYear(year)) {
     daysInMonth = 29;
   }
 
-  let startCol = 5; // Column E starts after A-D
+  let startCol = 5;
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${day.toString().padStart(2, '0')}-${month}-${year}`;
 
-    // Merge 3 columns (In/Out/Remarks under date)
     sheet.mergeCells(1, startCol, 1, startCol + 2);
     sheet.getCell(1, startCol).value = dateStr;
     sheet.getCell(1, startCol).alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // Row 2 under each merged date columns
     sheet.getCell(2, startCol).value = 'In';
     sheet.getCell(2, startCol + 1).value = 'Out';
     sheet.getCell(2, startCol + 2).value = 'Remarks';
@@ -1161,6 +994,7 @@ function setupStockSheet(sheet, year, month) {
     startCol += 3;
   }
 }
+
 
 
 //find date column
@@ -1277,65 +1111,53 @@ async function initializeMonthlySheets(workbook, targetDate) {
   }
 }
 
-// ✅ Setup Stock Sheet structure with proper A-D columns and merged headings
-// ✅ Setup Stock Sheet structure with styles applied
 function setupStockSheet(sheet, year, month) {
-  // Row 1: A-D headers
   const headers = ['Material', 'Opening Stock', 'Current Stock', 'Min Stock'];
-  const blueGreyFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9D9D9' } }; // Blue-grey, Text2, lighter 80%
+  const blueGreyFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9D9D9' } };
+
   for (let i = 0; i < headers.length; i++) {
     const cell = sheet.getCell(1, i + 1);
     cell.value = headers[i];
     cell.font = { bold: true };
     cell.fill = blueGreyFill;
     cell.alignment = { vertical: 'middle', horizontal: 'center' };
-    sheet.mergeCells(1, i + 1, 2, i + 1); // Merge A1:A2, B1:B2, etc.
+    sheet.mergeCells(1, i + 1, 2, i + 1);
   }
 
-  // Calculate days
   let daysInMonth = monthDays[parseInt(month)];
   if (parseInt(month) === 2 && isLeapYear(year)) daysInMonth = 29;
 
-  let col = 5; // Starting at Column E
-
+  let col = 5;
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${String(day).padStart(2, '0')}-${month}-${year}`;
 
-    // Merge Date headers
     sheet.mergeCells(1, col, 1, col + 2);
     const headerCell = sheet.getCell(1, col);
     headerCell.value = dateStr;
     headerCell.font = { bold: true };
     headerCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // Row 2: In / Out / Remarks
-    const greenFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2F0D9' } }; // Green Accent 6 60% lighter
-    const orangeFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F9CB9C' } }; // Orange Accent 2 60% lighter
-    const blueGreyFillLight = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9D9D9' } }; // Same as A-D headers
+    const greenFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2F0D9' } };
+    const orangeFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F9CB9C' } };
+    const blueGreyFillLight = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9D9D9' } };
 
     const inCell = sheet.getCell(2, col);
     const outCell = sheet.getCell(2, col + 1);
     const remarksCell = sheet.getCell(2, col + 2);
 
-    inCell.value = 'In';
-    inCell.font = { bold: true };
-    inCell.fill = greenFill;
+    inCell.value = 'In'; inCell.font = { bold: true }; inCell.fill = greenFill;
     inCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    outCell.value = 'Out';
-    outCell.font = { bold: true };
-    outCell.fill = orangeFill;
+    outCell.value = 'Out'; outCell.font = { bold: true }; outCell.fill = orangeFill;
     outCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    remarksCell.value = 'Remarks';
-    remarksCell.font = { bold: true };
-    remarksCell.fill = blueGreyFillLight;
+    remarksCell.value = 'Remarks'; remarksCell.font = { bold: true }; remarksCell.fill = blueGreyFillLight;
     remarksCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
     col += 3;
   }
 
-  // ✅ Optional: Set Column Widths for neatness
+  // Optional Column Widths
   const widths = [20, 15, 15, 15];
   for (let i = 0; i < widths.length; i++) {
     sheet.getColumn(i + 1).width = widths[i];
@@ -1343,106 +1165,121 @@ function setupStockSheet(sheet, year, month) {
 }
 
 
+
 //search current stock
 app.get('/search-current-stock', async (req, res) => {
   const { material, month } = req.query;
   if (!material || !month) return res.status(400).json({ error: 'Material and Month required' });
 
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.readFile(FILE_PATH);
+  try {
+    const fileName = 'Stock Sheet.xlsx';
+    const { workbook } = await loadWorkbookFromOneDrive(fileName);
 
-  const sheet = wb.getWorksheet(`Stock ${month}`);
-  if (!sheet) return res.status(404).json({ error: `Stock ${month} Sheet not found` });
+    const sheet = workbook.getWorksheet(`Stock ${month}`);
+    if (!sheet) return res.status(404).json({ error: `Stock ${month} Sheet not found` });
 
-  for (let i = 3; i <= sheet.rowCount; i++) {
-    const mat = sheet.getCell(`A${i}`).value;
-    if (mat && mat.toString().toLowerCase() === material.toLowerCase()) {
-      const currentStock = sheet.getCell(`C${i}`).value || 0; // Column C = Current Stock
-      return res.json({ material: mat, currentStock });
+    for (let i = 3; i <= sheet.rowCount; i++) {
+      const mat = sheet.getCell(`A${i}`).value;
+      if (mat && mat.toString().toLowerCase() === material.toLowerCase()) {
+        const currentStock = sheet.getCell(`C${i}`).value || 0; // Column C
+        return res.json({ material: mat, currentStock });
+      }
     }
-  }
 
-  return res.status(404).json({ error: 'Material not found in selected month.' });
+    return res.status(404).json({ error: 'Material not found in selected month.' });
+  } catch (err) {
+    console.error('❌ Error in search-current-stock:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
+
 
 //search min. stock
 app.get('/search-min-stock', async (req, res) => {
   const { month } = req.query;
   if (!month) return res.status(400).json({ error: 'Month required' });
 
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.readFile(FILE_PATH);
+  try {
+    const fileName = 'Stock Sheet.xlsx';
+    const { workbook } = await loadWorkbookFromOneDrive(fileName);
 
-  const sheet = wb.getWorksheet(`Stock ${month}`);
-  if (!sheet) return res.status(404).json({ error: `Stock ${month} Sheet not found` });
+    const sheet = workbook.getWorksheet(`Stock ${month}`);
+    if (!sheet) return res.status(404).json({ error: `Stock ${month} Sheet not found` });
 
-  const result = [];
+    const result = [];
 
-  for (let i = 3; i <= sheet.rowCount; i++) {
-    const material = sheet.getCell(`A${i}`).value;
-    const currentStock = parseFloat(sheet.getCell(`C${i}`).value) || 0;
-    const minStock = parseFloat(sheet.getCell(`D${i}`).value) || 0;
+    for (let i = 3; i <= sheet.rowCount; i++) {
+      const material = sheet.getCell(`A${i}`).value;
+      const currentStock = parseFloat(sheet.getCell(`C${i}`).value) || 0;
+      const minStock = parseFloat(sheet.getCell(`D${i}`).value) || 0;
 
-    if (material && currentStock <= minStock) {
-      result.push({ material, currentStock });
+      if (material && currentStock <= minStock) {
+        result.push({ material, currentStock });
+      }
     }
-  }
 
-  res.json(result);
+    res.json(result);
+  } catch (err) {
+    console.error('❌ Error in search-min-stock:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
-//search stock by date
-// ✅ NEW: Search stock by date (ALL Materials)
+
 app.get('/search-stock-by-date', async (req, res) => {
   const { date } = req.query;
   if (!date) return res.status(400).json({ error: 'Date is required' });
 
-  const month = ('0' + (new Date(date).getMonth() + 1)).slice(-2); // Extract month
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.readFile(FILE_PATH);
+  try {
+    const fileName = 'Stock Sheet.xlsx';
+    const month = ('0' + (new Date(date).getMonth() + 1)).slice(-2);
 
-  const sheet = wb.getWorksheet(`Stock ${month}`);
-  if (!sheet) return res.status(404).json({ error: `Stock ${month} Sheet not found` });
+    const { workbook } = await loadWorkbookFromOneDrive(fileName);
+    const sheet = workbook.getWorksheet(`Stock ${month}`);
+    if (!sheet) return res.status(404).json({ error: `Stock ${month} Sheet not found` });
 
-  // Find the date columns
-  const headerRow = sheet.getRow(1);
-  const formattedDate = `${String(new Date(date).getDate()).padStart(2, '0')}-${month}-${new Date(date).getFullYear()}`;
+    const headerRow = sheet.getRow(1);
+    const formattedDate = `${String(new Date(date).getDate()).padStart(2, '0')}-${month}-${new Date(date).getFullYear()}`;
 
-  let foundCol = null;
-  for (let col = 5; col <= sheet.columnCount; col += 3) {
-    if (headerRow.getCell(col).value === formattedDate) {
-      foundCol = col;
-      break;
-    }
-  }
-
-  if (!foundCol) return res.status(404).json({ error: 'Date not found in Sheet.' });
-
-  // Now collect all materials and their in/out
-  const result = [];
-
-  for (let i = 3; i <= sheet.rowCount; i++) {
-    const material = sheet.getCell(`A${i}`).value;
-    if (material) {
-      const inQty = sheet.getCell(i, foundCol).value || 0;
-      const outQty = sheet.getCell(i, foundCol + 1).value || 0;
-
-      if (inQty !== 0 || outQty !== 0) { // Only show if there is any entry
-        result.push({ material, in: inQty, out: outQty });
+    let foundCol = null;
+    for (let col = 5; col <= sheet.columnCount; col += 3) {
+      if (headerRow.getCell(col).value === formattedDate) {
+        foundCol = col;
+        break;
       }
     }
-  }
 
-  res.json(result);
+    if (!foundCol) return res.status(404).json({ error: 'Date not found in Sheet.' });
+
+    const result = [];
+
+    for (let i = 3; i <= sheet.rowCount; i++) {
+      const material = sheet.getCell(`A${i}`).value;
+      if (material) {
+        const inQty = sheet.getCell(i, foundCol).value || 0;
+        const outQty = sheet.getCell(i, foundCol + 1).value || 0;
+
+        if (inQty !== 0 || outQty !== 0) {
+          result.push({ material, in: inQty, out: outQty });
+        }
+      }
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error('❌ Error in /search-stock-by-date:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
-// Totals: sales revenue, payment received, plants installed
+
 app.get('/api/getDashboardStats', async (req, res) => {
   try {
-    res.set('Cache-Control', 'no-store'); // No cache for live updates
+    res.set('Cache-Control', 'no-store'); // Ensure no caching
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
+    const fileName = 'TempData.xlsx';
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
     let totalSalesRevenue = 0;
     let totalBalance = 0;
@@ -1451,10 +1288,9 @@ app.get('/api/getDashboardStats', async (req, res) => {
     sheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return; // Skip header row
 
-      const totalCost = parseFloat(row.getCell(8).value) || 0;    // Total Cost (H)
-      const balanceRaw = row.getCell(35).value;                   // Balance (AI)
+      const totalCost = parseFloat(row.getCell(8).value) || 0;    // Column H
+      const balanceRaw = row.getCell(35).value;                   // Column AI
 
-      // Always add total cost
       totalSalesRevenue += totalCost;
 
       let balance = null;
@@ -1465,22 +1301,19 @@ app.get('/api/getDashboardStats', async (req, res) => {
           balance = balanceRaw;
         }
 
-        // Add balance to total balance sum
         totalBalance += balance;
 
-        // 🛡️ Plants Installed: Only if balance === 0 exactly
         if (balance === 0) {
           plantsInstalled += 1;
         }
       }
     });
 
-    // ✨ Final Payment calculation
     const totalPaymentReceived = totalSalesRevenue - totalBalance;
 
     res.json({ totalSalesRevenue, totalPaymentReceived, plantsInstalled });
   } catch (error) {
-    console.error('❌ Error in getDashboardStats:', error);
+    console.error('❌ Error in getDashboardStats:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -1488,52 +1321,53 @@ app.get('/api/getDashboardStats', async (req, res) => {
 
 
 
-// 2️⃣ Pie-chart data
+
 app.get('/api/getPieData', async (req, res) => {
   try {
-    res.set('Cache-Control', 'no-store'); // No cache for live updates
+    res.set('Cache-Control', 'no-store'); // Always live
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
+    const fileName = 'TempData.xlsx';
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
-    let totalAmount = 0; // Sum of Total Cost
-    let totalBalance = 0; // Sum of Balance
+    let totalAmount = 0;   // Total Cost
+    let totalBalance = 0;  // Remaining Balance
 
     sheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip header row
+      if (rowNumber === 1) return; // Skip header
 
-      const totalCost = parseFloat(row.getCell(8).value) || 0;    // Total Cost (H)
-      const balanceRaw = row.getCell(35).value;                   // Balance (AI)
+      const totalCost = parseFloat(row.getCell(8).value) || 0;    // Column H
+      const balanceRaw = row.getCell(35).value;                   // Column AI
 
-      totalAmount += totalCost; // Sum all Total Cost
+      totalAmount += totalCost;
 
       let balance = 0;
       if (balanceRaw !== null && balanceRaw !== '' && balanceRaw !== '-' && balanceRaw !== '.') {
-        if (typeof balanceRaw === 'string') {
-          balance = parseFloat(balanceRaw.trim()) || 0;
-        } else if (typeof balanceRaw === 'number') {
-          balance = balanceRaw;
-        }
+        balance = typeof balanceRaw === 'string'
+          ? parseFloat(balanceRaw.trim()) || 0
+          : (typeof balanceRaw === 'number' ? balanceRaw : 0);
       }
 
-      totalBalance += balance; // Sum all valid balances
+      totalBalance += balance;
     });
 
     res.json({ totalAmount, totalBalance });
   } catch (error) {
-    console.error('❌ Error in getPieData:', error);
+    console.error('❌ Error in getPieData:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
+
 app.get('/api/getApplicationStatusData', async (req, res) => {
   try {
-    res.set('Cache-Control', 'no-store'); // Disable cache
+    res.set('Cache-Control', 'no-store'); // Live data only
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
+    const fileName = 'TempData.xlsx';
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
     let applicationApplied = 0;
     let applicationPending = 0;
@@ -1541,7 +1375,7 @@ app.get('/api/getApplicationStatusData', async (req, res) => {
     sheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return; // Skip header
 
-      const applicationCell = row.getCell(19).value; // Column S is 19th column
+      const applicationCell = row.getCell(19).value; // Column S
 
       if (applicationCell !== null && applicationCell !== '' && applicationCell.toString().toLowerCase() !== 'no') {
         applicationApplied += 1;
@@ -1552,18 +1386,20 @@ app.get('/api/getApplicationStatusData', async (req, res) => {
 
     res.json({ applied: applicationApplied, pending: applicationPending });
   } catch (error) {
-    console.error('❌ Error in getApplicationStatusData:', error);
+    console.error('❌ Error in getApplicationStatusData:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 app.get('/api/getBarGraphData', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
+    const fileName = 'TempData.xlsx';
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
     let totalCostSum = 0;
     let advanceSum = 0;
@@ -1571,12 +1407,12 @@ app.get('/api/getBarGraphData', async (req, res) => {
     let finalInstallmentReceivedSum = 0;
 
     sheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // skip header
+      if (rowNumber === 1) return; // Skip header
 
-      const totalCost = parseFloat(row.getCell(8).value) || 0;    // H
-      const advance = parseFloat(row.getCell(7).value) || 0;      // G
+      const totalCost = parseFloat(row.getCell(8).value) || 0;     // H
+      const advance = parseFloat(row.getCell(7).value) || 0;       // G
       const secondInstallment = parseFloat(row.getCell(32).value) || 0; // AF
-      const finalInstallment = parseFloat(row.getCell(34).value) || 0; // AH
+      const finalInstallment = parseFloat(row.getCell(34).value) || 0;  // AH
 
       totalCostSum += totalCost;
       advanceSum += advance;
@@ -1584,7 +1420,6 @@ app.get('/api/getBarGraphData', async (req, res) => {
       finalInstallmentReceivedSum += finalInstallment;
     });
 
-    // Now calculate according to your final logic
     const sixtyPercentOfTotalCost = 0.6 * totalCostSum;
 
     const secondInstallmentDue = totalCostSum - (advanceSum + sixtyPercentOfTotalCost);
@@ -1599,18 +1434,20 @@ app.get('/api/getBarGraphData', async (req, res) => {
       finalInstallmentDue
     });
   } catch (error) {
-    console.error('❌ Error in getBarGraphData:', error);
+    console.error('❌ Error in getBarGraphData:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 app.get('/api/getPaymentsData', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store');
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('C:/Users/JK SOLAR/OneDrive/CRM_PWA/TempData.xlsx');
+    const fileName = 'TempData.xlsx';
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
     const payments = [];
 
@@ -1624,7 +1461,6 @@ app.get('/api/getPaymentsData', async (req, res) => {
       const finalInstallment = row.getCell(34).value;
       const balance = parseFloat(row.getCell(35).value) || 0;
 
-      // Only include rows where balance is not zero
       if (balance !== 0) {
         payments.push({
           customerName,
@@ -1636,223 +1472,71 @@ app.get('/api/getPaymentsData', async (req, res) => {
         });
       }
     });
-    
+
     res.json({ payments });
   } catch (error) {
-    console.error('❌ Error fetching Payments Data:', error);
+    console.error('❌ Error fetching Payments Data:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
 
-//dateYes bro
-app.post('/api/addTask', async (req, res) => {
-  try {
-      const { date, time, description } = req.body;
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile('TempData.xlsx');
-      const sheet = workbook.getWorksheet('Client Data');
-
-      // Find first empty row in AK (column 37)
-      let rowToUse;
-      sheet.eachRow((row, rowNumber) => {
-          if (!row.getCell(37).value && !rowToUse) {
-              rowToUse = rowNumber;
-          }
-      });
-
-      if (!rowToUse) {
-          rowToUse = sheet.lastRow.number + 1;
-      }
-
-      sheet.getRow(rowToUse).getCell(37).value = date;         // AK
-      sheet.getRow(rowToUse).getCell(38).value = time;         // AL
-      sheet.getRow(rowToUse).getCell(39).value = description;  // AM
-
-      await workbook.xlsx.writeFile('TempData.xlsx');
-      res.json({ success: true });
-  } catch (error) {
-      console.error('❌ Error adding task:', error);
-      res.status(500).json({ error: 'Failed to add task' });
-  }
-});
 
 app.post('/api/addTask', async (req, res) => {
-  const { date, time, description } = req.body;
-  const workbook = new Excel.Workbook();
-  await workbook.xlsx.readFile('TempData.xlsx');
-  const worksheet = workbook.getWorksheet('Client Data');
-
-  const nextRow = worksheet.lastRow.number + 1;
-
-  worksheet.getCell(`AK${nextRow}`).value = date;
-  worksheet.getCell(`AL${nextRow}`).value = time;
-  worksheet.getCell(`AM${nextRow}`).value = description;
-
-  await workbook.xlsx.writeFile('TempData.xlsx');
-  res.json({ success: true });
-});
-
-app.get('/api/getTasks', async (req, res) => {
-  const workbook = new Excel.Workbook();
-  await workbook.xlsx.readFile('TempData.xlsx');
-  const worksheet = workbook.getWorksheet('Client Data');
-
-  const tasks = [];
-  worksheet.eachRow((row, rowNumber) => {
-    const date = row.getCell(37).value;
-    const time = row.getCell(38).value;
-    const description = row.getCell(39).value;
-
-    if (date && time && description) {
-      tasks.push({ date, time, description }); // ✅ use 'description' key to match frontend expectation
-    }
-  });
-
-  res.json({ tasks });
-});
-
-
-app.post('/api/addReminder', async (req, res) => {
   try {
-      const { date, text } = req.body;
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile('TempData.xlsx');
-      const sheet = workbook.getWorksheet('Client Data');
+    const { date, time, description } = req.body;
+    const fileName = 'TempData.xlsx';
 
-      // Find first empty row in AN (column 40)
-      let rowToUse;
-      sheet.eachRow((row, rowNumber) => {
-          if (!row.getCell(40).value && !rowToUse) {
-              rowToUse = rowNumber;
-          }
-      });
-
-      if (!rowToUse) {
-          rowToUse = sheet.lastRow.number + 1;
-      }
-
-      sheet.getRow(rowToUse).getCell(40).value = date;     // AN
-      sheet.getRow(rowToUse).getCell(41).value = text;     // AO
-
-      await workbook.xlsx.writeFile('TempData.xlsx');
-      res.json({ success: true });
-  } catch (error) {
-      console.error('❌ Error adding reminder:', error);
-      res.status(500).json({ error: 'Failed to add reminder' });
-  }
-});
-
-app.get('/api/getReminders', async (req, res) => {
-  try {
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.readFile('TempData.xlsx');
-      const sheet = workbook.getWorksheet('Client Data');
-      const reminders = [];
-
-      sheet.eachRow((row, rowNumber) => {
-          const date = row.getCell(40).value;
-          const text = row.getCell(41).value;
-
-          if (date && text) {
-              reminders.push({ date, text });
-          }
-      });
-
-      res.json({ reminders });
-  } catch (error) {
-      console.error('❌ Error fetching reminders:', error);
-      res.status(500).json({ error: 'Failed to fetch reminders' });
-  }
-});
-
-// Delete Task
-app.post('/api/deleteTask', async (req, res) => {
-  const { date, time, description } = req.body;
-
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile('tempdata.xlsx');
-
-  const sheet = workbook.getWorksheet('Client Data'); // ✅ Use correct sheet name
-  if (!sheet) {
-    return res.status(404).json({ success: false, message: 'Sheet not found' });
-  }
-
-  let rowToDelete = null;
-
-  for (let i = 2; i <= sheet.rowCount; i++) {
-    const row = sheet.getRow(i);
-    const d = row.getCell(37).value?.toString().trim(); // AK
-    const t = row.getCell(38).value?.toString().trim(); // AL
-    const desc = row.getCell(39).value?.toString().trim(); // AM
-
-    if (d === date && t === time && desc === description) {
-      rowToDelete = i;
-      break;
-    }
-  }
-
-  if (rowToDelete) {
-    sheet.spliceRows(rowToDelete, 1);
-    await workbook.xlsx.writeFile('tempdata.xlsx');
-    res.json({ success: true });
-  } else {
-    res.json({ success: false, message: 'Task not found' });
-  }
-});
-
-
-
-
-// Delete Reminder
-app.post('/api/deleteReminder', async (req, res) => {
-  try {
-    const { date, text } = req.body;
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile('TempData.xlsx');
+    const { workbook, token } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Client Data sheet not found' });
 
-    sheet.eachRow((row) => {
-      const rowDate = row.getCell(40).value;
-      const rowText = row.getCell(41).value;
-
-      if (rowDate === date && rowText === text) {
-        row.getCell(40).value = null;
-        row.getCell(41).value = null;
+    // Find first empty row in column AK (37)
+    let rowToUse;
+    sheet.eachRow((row, rowNumber) => {
+      if (!row.getCell(37).value && !rowToUse) {
+        rowToUse = rowNumber;
       }
     });
 
-    await workbook.xlsx.writeFile('TempData.xlsx');
+    if (!rowToUse) {
+      rowToUse = sheet.lastRow.number + 1;
+    }
+
+    sheet.getRow(rowToUse).getCell(37).value = date;         // AK
+    sheet.getRow(rowToUse).getCell(38).value = time;         // AL
+    sheet.getRow(rowToUse).getCell(39).value = description;  // AM
+
+    await uploadWorkbookToOneDrive(fileName, workbook, token);
     res.json({ success: true });
+
   } catch (error) {
-    console.error('❌ Error deleting reminder:', error);
-    res.status(500).json({ error: 'Failed to delete reminder' });
+    console.error('❌ Error adding task:', error.message);
+    res.status(500).json({ error: 'Failed to add task' });
   }
 });
 
-//JK SOLAR LEADSssss
 
 app.get('/get-next-refno', async (req, res) => {
-  const filePath = path.join(__dirname, 'leads.xlsx');
+  const fileName = 'leads.xlsx';
   const workbook = new ExcelJS.Workbook();
 
   try {
-    await workbook.xlsx.readFile(filePath);
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet(1);
+    if (!sheet) return res.status(404).send('Sheet not found');
 
     let lastRef = null;
 
-    // Loop through all rows to find the last reference number
     sheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // skip header
-      const refCell = row.getCell(5).value;
+      if (rowNumber === 1) return; // Skip header
+      const refCell = row.getCell(5).value; // Column E
       if (refCell && typeof refCell === 'string' && /^[A-Z]\d{4}$/.test(refCell)) {
         lastRef = refCell;
       }
     });
 
     let nextRef = 'A0001';
-
     if (lastRef) {
       const letter = lastRef.charAt(0);
       const number = parseInt(lastRef.slice(1));
@@ -1866,70 +1550,96 @@ app.get('/get-next-refno', async (req, res) => {
 
     res.send(nextRef);
   } catch (err) {
-    console.error("Error generating next ref no:", err);
+    console.error("❌ Error generating next ref no:", err.message);
     res.status(500).send('Error');
   }
 });
 
 
+
 app.post('/save-lead', async (req, res) => {
-  const filePath = path.join(__dirname, 'leads.xlsx');
   const { date, name, address, mobile, refno, kw, reference } = req.body;
-  const workbook = new ExcelJS.Workbook();
+  const fileName = 'leads.xlsx';
 
   try {
-    // Create file if not exists
-    if (!fs.existsSync(filePath)) {
-      const newSheet = workbook.addWorksheet('Leads');
-      newSheet.addRow(['Date', 'Consumer Name', 'Address', 'Mobile No.', 'Ref No.', 'KW', 'Reference']);
-      await workbook.xlsx.writeFile(filePath);
+    const token = await getAccessToken();
+
+    // 📥 Download workbook from OneDrive
+    const response = await axios.get(`https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'arraybuffer'
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(response.data);
+
+    let sheet = workbook.getWorksheet(1);
+
+    // 🧾 If sheet doesn't exist, create it with headers
+    if (!sheet) {
+      sheet = workbook.addWorksheet('Leads');
+      sheet.addRow(['Date', 'Consumer Name', 'Address', 'Mobile No.', 'Ref No.', 'KW', 'Reference']);
     }
 
-    await workbook.xlsx.readFile(filePath);
-    const sheet = workbook.getWorksheet(1); // 'Leads'
-
+    // ➕ Add new lead
     sheet.addRow([date, name, address, mobile, refno, kw, reference]);
 
-    await workbook.xlsx.writeFile(filePath);
+    // 📤 Upload workbook back to OneDrive
+    const buffer = await workbook.xlsx.writeBuffer();
+    await axios.put(
+      `https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`,
+      buffer,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      }
+    );
+
     res.sendStatus(200);
   } catch (err) {
-    console.error('Error saving lead:', err);
+    console.error('❌ Error saving lead:', err.message);
     res.status(500).send('Failed to save');
   }
 });
 
+
+
 app.get('/get-leads', async (req, res) => {
-  const filePath = path.join(__dirname, 'leads.xlsx');
-  const workbook = new ExcelJS.Workbook();
+  const fileName = 'leads.xlsx';
 
   try {
-    await workbook.xlsx.readFile(filePath);
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet(1);
+    if (!sheet) return res.status(404).send('Sheet not found');
 
     const data = [];
+
     sheet.eachRow((row, rowNumber) => {
-      const rowData = row.values.slice(1); // drop first blank
-      if (rowNumber === 1 || rowData[7]?.toString().toLowerCase() !== 'no') {
+      const rowData = row.values.slice(1); // Remove blank first
+      if (rowNumber === 1 || rowData[6]?.toString().toLowerCase() !== 'no') {
         data.push(rowData);
       }
     });
 
     res.json(data);
   } catch (err) {
-    console.error('Error reading leads:', err);
+    console.error('❌ Error reading leads:', err.message);
     res.status(500).send('Failed to read');
   }
 });
 
 
-app.post('/update-lead', async (req, res) => {
-  const filePath = path.join(__dirname, 'leads.xlsx');
-  const { field, rowIndex, value } = req.body;
 
-  const workbook = new ExcelJS.Workbook();
+app.post('/update-lead', async (req, res) => {
+  const { field, rowIndex, value } = req.body;
+  const fileName = 'leads.xlsx';
+
   try {
-    await workbook.xlsx.readFile(filePath);
+    const { workbook, token } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet(1);
+    if (!sheet) return res.status(404).send('Sheet not found');
 
     const fieldMap = {
       call: 8,
@@ -1940,63 +1650,66 @@ app.post('/update-lead', async (req, res) => {
       final: 13
     };
 
-    const row = sheet.getRow(rowIndex + 2); // +2 for 0-index + header row
+    const row = sheet.getRow(rowIndex + 2); // Adjust for header and 0-index
     const colIndex = fieldMap[field];
 
     if (row && colIndex) {
       row.getCell(colIndex).value = value;
       row.commit();
-      await workbook.xlsx.writeFile(filePath);
+
+      await uploadWorkbookToOneDrive(fileName, workbook, token);
       res.sendStatus(200);
     } else {
       res.status(400).send("Invalid row/column");
     }
   } catch (err) {
-    console.error("Error updating lead:", err);
+    console.error("❌ Error updating lead:", err.message);
     res.status(500).send("Update failed");
   }
 });
 
 app.post('/delete-lead', async (req, res) => {
-  const filePath = path.join(__dirname, 'leads.xlsx');
   const { rowIndex } = req.body;
+  const fileName = 'leads.xlsx';
 
-  const workbook = new ExcelJS.Workbook();
   try {
-    await workbook.xlsx.readFile(filePath);
+    const { workbook, token } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet(1);
+    if (!sheet) return res.status(404).send('Sheet not found');
 
-    const actualRow = rowIndex + 2; // Because headers + 0-indexed
-    
-    await workbook.xlsx.writeFile(filePath);
+    const actualRow = rowIndex + 2; // Adjust for header
+
+    sheet.spliceRows(actualRow, 1); // Delete 1 row
+    await uploadWorkbookToOneDrive(fileName, workbook, token);
+
     res.sendStatus(200);
   } catch (err) {
-    console.error("Error deleting lead:", err);
+    console.error("❌ Error deleting lead:", err.message);
     res.status(500).send("Delete failed");
   }
 });
 
-//neww proposall
-const proposalExcelPath = path.join(__dirname, 'proposal.xlsx');
 
+//neww proposall
 app.post('/save-proposal', async (req, res) => {
   const data = req.body;
-  const filePath = proposalExcelPath;
+  const fileName = 'proposal.xlsx';
 
   try {
-    const workbook = new ExcelJS.Workbook();
+    let { workbook, token } = await getWorkbookFromOneDrive(fileName);
+    let sheet = workbook.getWorksheet('Proposals');
 
-    if (fs.existsSync(filePath)) {
-      await workbook.xlsx.readFile(filePath);
-    } else {
-      const ws = workbook.addWorksheet('Proposals');
-      ws.addRow(['Ref', 'Date', 'Subsidy', 'KW', 'Address', 'State', 'City', 'To Whom', 'Mobile', 'Price', 'Panel Brand', 'Panel Wp', 'Inverter Brand']);
+    // If file or sheet is missing, create structure
+    if (!sheet) {
+      sheet = workbook.addWorksheet('Proposals');
+      sheet.addRow([
+        'Ref', 'Date', 'Subsidy', 'KW', 'Address', 'State', 'City', 
+        'To Whom', 'Mobile', 'Price', 'Panel Brand', 'Panel Wp', 'Inverter Brand'
+      ]);
     }
 
-    const ws = workbook.getWorksheet('Proposals');
-
-    // Auto-generate reference number like 01P, 02P
-    const lastRow = ws.lastRow;
+    // Auto-generate Ref No like 01P, 02P...
+    const lastRow = sheet.lastRow;
     let newNumber = 1;
     if (lastRow && lastRow.getCell(1).value && lastRow.getCell(1).value.toString().endsWith('P')) {
       const lastRef = lastRow.getCell(1).value.toString().replace('P', '');
@@ -2004,7 +1717,7 @@ app.post('/save-proposal', async (req, res) => {
     }
     const newRef = `${String(newNumber).padStart(2, '0')}P`;
 
-    ws.addRow([
+    sheet.addRow([
       newRef,
       data.date,
       data.subsidy,
@@ -2020,154 +1733,32 @@ app.post('/save-proposal', async (req, res) => {
       data.inverterBrand
     ]);
 
-    await workbook.xlsx.writeFile(filePath);
+    await uploadWorkbookToOneDrive(fileName, workbook, token);
     res.json({ success: true, ref: newRef });
 
   } catch (err) {
-    console.error('❌ Proposal save error:', err);
+    console.error('❌ Proposal save error:', err.message);
     res.status(500).json({ success: false, error: 'Proposal saving failed' });
   }
 });
 
-//Proposal
-app.post('/submit-proposal', upload.none(), (req, res) => {
-  const filePath = 'C:/Users/JK SOLAR/OneDrive/CRM_PWA/proposal.xlsx';
 
-  let workbook, worksheet, data;
-  if (fs.existsSync(filePath)) {
-    workbook = xlsx.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-
-    if (!sheetName) {
-      worksheet = xlsx.utils.json_to_sheet([]);
-      xlsx.utils.book_append_sheet(workbook, worksheet, 'Proposals');
-      data = [];
-    } else {
-      worksheet = workbook.Sheets[sheetName];
-      data = xlsx.utils.sheet_to_json(worksheet);
-    }
-  } else {
-    workbook = xlsx.utils.book_new();
-    worksheet = xlsx.utils.json_to_sheet([]);
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Proposals');
-    data = [];
-  }
-
-  const maxRef = data.reduce((max, row) => {
-    const ref = row.Ref;
-    if (typeof ref === 'string' && ref.endsWith('P')) {
-      const num = parseInt(ref.replace('P', ''));
-      return isNaN(num) ? max : Math.max(max, num);
-    }
-    return max;
-  }, 0);
-
-  const newRef = (maxRef + 1).toString().padStart(2, '0') + 'P';
-
-  const newRow = {
-    Ref: newRef,
-    Date: req.body.date,
-    Subsidy: req.body.subsidy,
-    KW: req.body.kw,
-    Address: req.body.address,
-    State: req.body.state,
-    City: req.body.city,
-    "To Whom": req.body.toWhom,
-    "Mobile No": req.body.mobile,
-    Price: req.body.price,
-    "Panel Brand": req.body.panelBrand,
-    "Panel Wp": req.body.panelWp,
-    "Inverter Brand": req.body.inverterBrand
-  };
-
-  data.push(newRow);
-  const newSheet = xlsx.utils.json_to_sheet(data, {
-    header: [
-      'Ref', 'Date', 'Subsidy', 'KW', 'Address', 'State', 'City', 'To Whom',
-      'Mobile No', 'Price', 'Panel Brand', 'Panel Wp', 'Inverter Brand'
-    ]
-  });
-
-  const newWb = xlsx.utils.book_new();
-  xlsx.utils.book_append_sheet(newWb, newSheet, 'Proposals');
-  xlsx.writeFile(newWb, filePath);
-  console.log("➡️ Proposal submission triggered with data:", req.body);
-  res.json({ success: true, ref: newRef });
-});
-
-
-//Proposal fetching
-
-app.post('/submit-proposal', upload.none(), (req, res) => {
-  try {
-    const filePath = path.join(__dirname, 'TempData.xlsx');
-
-    let workbook, sheet, data;
-    if (fs.existsSync(filePath)) {
-      workbook = xlsx.readFile(filePath);
-      sheet = workbook.Sheets[workbook.SheetNames[0]];
-      data = xlsx.utils.sheet_to_json(sheet);
-    } else {
-      workbook = xlsx.utils.book_new();
-      data = [];
-    }
-
-    // Generate next ref like 01P, 02P
-    const maxNum = data.reduce((max, row) => {
-      const match = typeof row.Ref === 'string' && row.Ref.match(/^(\d+)P$/);
-      if (match) {
-        const num = parseInt(match[1]);
-        return Math.max(max, num);
-      }
-      return max;
-    }, 0);
-    const nextRef = `${(maxNum + 1).toString().padStart(2, '0')}P`;
-
-    // Create new row
-    const newRow = {
-      Ref: nextRef,
-      Date: new Date().toLocaleDateString('en-IN'),
-      To: req.body.to,
-      Mobile: req.body.mobile,
-      KW: req.body.kw,
-      Price: req.body.price,
-      WP: req.body.wp,
-      PanelBrand: req.body.panelBrand,
-      InverterBrand: req.body.inverterBrand
-    };
-
-    // Add to data and save
-    data.push(newRow);
-    const newSheet = xlsx.utils.json_to_sheet(data, {
-      header: ['Ref', 'Date', 'To', 'Mobile', 'KW', 'Price', 'WP', 'PanelBrand', 'InverterBrand']
-    });
-    xlsx.utils.book_append_sheet(workbook, newSheet, 'Proposals');
-    xlsx.writeFile(workbook, filePath);
-
-    res.json({ success: true, ref: nextRef });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-
-
-// Route: Get Proposal by Ref
 
 app.get('/get-proposal', async (req, res) => {
   const ref = req.query.ref;
-  const filePath = path.join(__dirname, 'proposal.xlsx');
+  const fileName = 'proposal.xlsx';
 
   if (!ref) return res.status(400).json({ success: false, error: 'Missing reference number' });
 
   try {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
     const sheet = workbook.getWorksheet('Proposals');
+    if (!sheet) return res.status(404).json({ success: false, error: 'Proposals sheet not found' });
 
     let matchedRow;
+
     sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
       if (row.getCell(1).value === ref) {
         matchedRow = row;
       }
@@ -2175,7 +1766,7 @@ app.get('/get-proposal', async (req, res) => {
 
     if (!matchedRow) return res.status(404).json({ success: false, error: 'Proposal not found' });
 
-    const headers = sheet.getRow(1).values.slice(1); // Remove empty index 0
+    const headers = sheet.getRow(1).values.slice(1); // Ignore index 0
     const values = matchedRow.values.slice(1);
     const proposalData = {};
 
@@ -2186,19 +1777,26 @@ app.get('/get-proposal', async (req, res) => {
     res.json({ success: true, data: proposalData });
 
   } catch (err) {
-    console.error('❌ Error reading proposal.xlsx:', err);
-    res.status(500).json({ success: false, error: 'Error reading Excel' });
+    console.error('❌ Error reading proposal.xlsx from OneDrive:', err.message);
+    res.status(500).json({ success: false, error: 'Error reading Excel from cloud' });
   }
 });
 
-const puppeteer = require('puppeteer');
+
+
 
 app.get('/generate-pdf', async (req, res) => {
   const ref = req.query.ref;
-  const previewURL = `http://localhost:3000/proposal-preview.html?ref=${ref}`;
+  if (!ref) return res.status(400).send('Missing reference number');
+
+  const previewURL = `https://jk-crm-0qal.onrender.com/proposal-preview.html?ref=${ref}`;
 
   try {
-    const browser = await puppeteer.launch({ headless: 'new' });
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'] // ✅ Required for Render or headless hosting
+    });
+
     const page = await browser.newPage();
     await page.goto(previewURL, { waitUntil: 'networkidle0' });
 
@@ -2216,71 +1814,83 @@ app.get('/generate-pdf', async (req, res) => {
     });
 
     res.send(pdfBuffer);
-
   } catch (err) {
-    console.error('PDF Generation Error:', err);
+    console.error('❌ PDF Generation Error:', err.message);
     res.status(500).send('Failed to generate PDF');
   }
 });
 
-app.get('/get-proposals', (req, res) => {
-  const filePath = 'C:/Users/JK SOLAR/OneDrive/CRM_PWA/proposal.xlsx';
+
+app.get('/get-proposals', async (req, res) => {
+  const fileName = 'proposal.xlsx';
 
   try {
-    if (!fs.existsSync(filePath)) {
-      return res.json([]);
-    }
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
+    const sheet = workbook.getWorksheet('Proposals');
 
-    const workbook = xlsx.readFile(filePath);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const data = xlsx.utils.sheet_to_json(sheet);
+    if (!sheet) return res.json([]);
+
+    const data = [];
+    const headers = sheet.getRow(1).values.slice(1); // Skip index 0
+
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // skip header
+
+      const values = row.values.slice(1); // Remove first empty
+      const rowData = {};
+
+      headers.forEach((header, i) => {
+        rowData[header.trim().toLowerCase().replace(/\s+/g, '')] = values[i];
+      });
+
+      data.push(rowData);
+    });
+
     res.json(data);
   } catch (err) {
-    console.error('Error reading proposal.xlsx:', err);
+    console.error('❌ Error reading proposals from OneDrive:', err.message);
     res.status(500).json({ error: 'Failed to read proposal data.' });
   }
 });
 
 
 
-const proposalPath = path.join(__dirname, 'proposal.xlsx');
-const leadsPath = path.join(__dirname, 'leads.xlsx');
-
 async function transferProposalToLeads() {
-  const proposalWorkbook = new ExcelJS.Workbook();
-  await proposalWorkbook.xlsx.readFile(proposalPath);
-  const proposalSheet = proposalWorkbook.worksheets[0];
+  const proposalFile = 'proposal.xlsx';
+  const leadsFile = 'leads.xlsx';
 
-  const leadsWorkbook = new ExcelJS.Workbook();
-  await leadsWorkbook.xlsx.readFile(leadsPath);
-  const leadsSheet = leadsWorkbook.worksheets[0];
+  const { workbook: proposalWorkbook, token } = await getWorkbookFromOneDrive(proposalFile);
+  const proposalSheet = proposalWorkbook.getWorksheet(1);
+
+  const { workbook: leadsWorkbook } = await getWorkbookFromOneDrive(leadsFile);
+  const leadsSheet = leadsWorkbook.getWorksheet(1);
 
   for (let i = 2; i <= proposalSheet.rowCount; i++) {
     const rowProposal = proposalSheet.getRow(i);
-    const proposalKW = String(rowProposal.getCell('D').value).trim();    // KW
-    const proposalName = String(rowProposal.getCell('H').value).trim();  // Name
-    const proposalMobile = String(rowProposal.getCell('I').value).trim(); // Mobile
+    const proposalKW = String(rowProposal.getCell('D').value).trim();
+    const proposalName = String(rowProposal.getCell('H').value).trim();
+    const proposalMobile = String(rowProposal.getCell('I').value).trim();
 
     let replaced = false;
 
     for (let j = 2; j <= leadsSheet.rowCount; j++) {
       const rowLead = leadsSheet.getRow(j);
-      const leadKW = String(rowLead.getCell(6).value).trim();     // F
-      const leadName = String(rowLead.getCell(2).value).trim();   // B
-      const leadMobile = String(rowLead.getCell(4).value).trim(); // D
+      const leadKW = String(rowLead.getCell(6).value).trim();
+      const leadName = String(rowLead.getCell(2).value).trim();
+      const leadMobile = String(rowLead.getCell(4).value).trim();
 
       if (proposalKW === leadKW && proposalName === leadName && proposalMobile === leadMobile) {
-        leadsSheet.spliceRows(j, 1); // delete old row
+        leadsSheet.spliceRows(j, 1);
         leadsSheet.insertRow(j, [
-          rowProposal.getCell('B').value, // Consumer Name → A
-          rowProposal.getCell('H').value, // Address       → B
-          rowProposal.getCell('E').value, // State         → C
-          rowProposal.getCell('I').value, // Mobile No     → D
-          rowProposal.getCell('A').value, // Ref No        → E
-          rowProposal.getCell('D').value, // Date          → F
-          '',                              // Reference     → G
-          '',                              // H
-  'Sent'                           // I ← NEW!
+          rowProposal.getCell('B').value,
+          rowProposal.getCell('H').value,
+          rowProposal.getCell('E').value,
+          rowProposal.getCell('I').value,
+          rowProposal.getCell('A').value,
+          rowProposal.getCell('D').value,
+          '',
+          '',
+          'Sent'
         ]);
         console.log(`🔁 Replaced row ${j} for ${proposalName}, ${proposalMobile}, ${proposalKW}`);
         replaced = true;
@@ -2290,154 +1900,191 @@ async function transferProposalToLeads() {
 
     if (!replaced) {
       leadsSheet.addRow([
-        rowProposal.getCell('B').value, // Consumer Name → A
-        rowProposal.getCell('H').value, // Address       → B
-        rowProposal.getCell('E').value, // State         → C
-        rowProposal.getCell('I').value, // Mobile No     → D
-        rowProposal.getCell('A').value, // Ref No        → E
-        rowProposal.getCell('D').value, // Date          → F
-        '',                              // Reference     → G
-       
+        rowProposal.getCell('B').value,
+        rowProposal.getCell('H').value,
+        rowProposal.getCell('E').value,
+        rowProposal.getCell('I').value,
+        rowProposal.getCell('A').value,
+        rowProposal.getCell('D').value,
+        '',
+        '',
+        'Sent'
       ]);
       console.log(`🆕 Added new row for ${proposalName}, ${proposalMobile}, ${proposalKW}`);
     }
   }
 
-  await leadsWorkbook.xlsx.writeFile(leadsPath);
-  console.log("✅ Leads file updated successfully.");
+  await uploadWorkbookToOneDrive(leadsFile, leadsWorkbook, token);
+  console.log('✅ Leads file updated successfully.');
 }
 
-// Initial run
-transferProposalToLeads().catch(console.error);
-
-// Auto-watch for changes
-fs.watchFile(proposalPath, { interval: 2000 }, (curr, prev) => {
-  if (curr.mtime !== prev.mtime) {
-    console.log("📄 Proposal file changed. Updating leads...");
-    transferProposalToLeads().catch(console.error);
-  }
-});
 
 
-const notesFilePath = "C:\\Users\\JK SOLAR\\OneDrive\\CRM_PWA\\TempData.xlsx";
-
-// 🔹 GET notes
 app.get('/api/getNotes', async (req, res) => {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile("C:\\Users\\JK SOLAR\\OneDrive\\CRM_PWA\\TempData.xlsx");
-  const sheet = workbook.getWorksheet('Client Data');
-  const notes = [];
+  try {
+    const fileName = 'TempData.xlsx';
+    const { workbook } = await getWorkbookFromOneDrive(fileName);
+    const sheet = workbook.getWorksheet('Client Data');
+    const notes = [];
 
-  // START from row 2 to skip header
-  for (let i = 2; i <= sheet.rowCount; i++) {
-    const note = sheet.getRow(i).getCell(38).value; // Column AL
-    if (note) {
-      notes.push(note.toString());
+    if (!sheet) return res.json({ notes: [] });
+
+    for (let i = 2; i <= sheet.rowCount; i++) {
+      const note = sheet.getRow(i).getCell(38).value; // Column AL
+      if (note) {
+        notes.push(note.toString());
+      }
     }
-  }
 
-  res.json({ notes });
+    res.json({ notes });
+  } catch (err) {
+    console.error('❌ Error fetching notes:', err.message);
+    res.status(500).json({ error: 'Failed to fetch notes' });
+  }
 });
 
 
-// 🔹 ADD note
+
 app.post('/api/addNote', async (req, res) => {
   const { note } = req.body;
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(notesFilePath);
-  const sheet = workbook.getWorksheet('Client Data');
+  const fileName = 'TempData.xlsx';
 
-  let rowToWrite = sheet.actualRowCount + 1;
+  try {
+    const { workbook, token } = await getWorkbookFromOneDrive(fileName);
+    const sheet = workbook.getWorksheet('Client Data');
 
-  // Find the next empty row in column AL
-  for (let i = 2; i <= sheet.rowCount + 100; i++) {
-    const cell = sheet.getRow(i).getCell(38).value;
-    if (!cell || cell === '') {
-      rowToWrite = i;
-      break;
+    if (!sheet) return res.status(404).json({ error: 'Sheet not found' });
+
+    let rowToWrite = sheet.actualRowCount + 1;
+
+    // Find the next empty row in column AL (38)
+    for (let i = 2; i <= sheet.rowCount + 100; i++) {
+      const cell = sheet.getRow(i).getCell(38).value;
+      if (!cell || cell === '') {
+        rowToWrite = i;
+        break;
+      }
     }
+
+    sheet.getRow(rowToWrite).getCell(38).value = note;
+
+    await uploadWorkbookToOneDrive(fileName, workbook, token);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('❌ Error adding note:', err.message);
+    res.status(500).json({ error: 'Failed to add note' });
   }
-
-  sheet.getRow(rowToWrite).getCell(38).value = note;
-  await workbook.xlsx.writeFile(notesFilePath);
-
-  res.sendStatus(200);
 });
 
 
 
-// 🔹 DELETE note by index
 app.post('/api/deleteNote', async (req, res) => {
   const { index } = req.body;
+  const fileName = 'TempData.xlsx';
+
+  try {
+    const { workbook, token } = await getWorkbookFromOneDrive(fileName);
+    const sheet = workbook.getWorksheet('Client Data');
+    if (!sheet) return res.status(404).json({ error: 'Sheet not found' });
+
+    let rowIndex = 0, count = 0;
+
+    sheet.eachRow((row, i) => {
+      if (row.getCell(38).value) {
+        if (count === index) rowIndex = i;
+        count++;
+      }
+    });
+
+    if (rowIndex > 0) {
+      sheet.getRow(rowIndex).getCell(38).value = null;
+      await uploadWorkbookToOneDrive(fileName, workbook, token);
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('❌ Error deleting note:', err.message);
+    res.status(500).json({ error: 'Failed to delete note' });
+  }
+});
+
+
+// 🎟️ Get Access Token using Client Credentials
+async function getAccessToken() {
+  const tokenUrl = `https://login.microsoftonline.com/785fd7e9-594d-4549-91b9-9372f7295962/oauth2/v2.0/token`;
+
+  const data = qs.stringify({
+    grant_type: 'client_credentials',
+    client_id: '89a49313-0f16-44c3-9f71-cf96eab166ad',
+    client_secret: 'a0958e75-6be9-45cd-a1e9-e0a436769602',
+    scope: 'https://graph.microsoft.com/.default',
+  });
+
+  const response = await axios.post(tokenUrl, data, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+  });
+
+  return response.data.access_token;
+}
+
+// 📥 Fetch leads.xlsx from OneDrive and return as ExcelJS workbook
+async function downloadExcelFromOneDrive() {
+  try {
+    const accessToken = await getAccessToken();
+
+    const fileUrl = "https://graph.microsoft.com/v1.0/me/drive/root:/leads.xlsx:/content";
+
+    const response = await axios.get(fileUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      responseType: 'arraybuffer',
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(response.data);
+
+    console.log("✅ leads.xlsx downloaded and loaded from OneDrive");
+    return workbook;
+  } catch (err) {
+    console.error("❌ Error downloading file from OneDrive:", err.response?.data || err.message);
+    throw err;
+  }
+}
+async function getWorkbookFromOneDrive(fileName) {
+  const token = await getAccessToken();
+  const fileUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`;
+
+  const response = await axios.get(fileUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'arraybuffer'
+  });
+
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(notesFilePath);
-  const sheet = workbook.getWorksheet('Client Data');
+  await workbook.xlsx.load(response.data);
 
-  let rowIndex = 0, count = 0;
+  return { workbook, token };
+}
+async function uploadWorkbookToOneDrive(fileName, workbook, token) {
+  const buffer = await workbook.xlsx.writeBuffer();
 
-  sheet.eachRow((row, i) => {
-    if (row.getCell(38).value) {
-      if (count === index) rowIndex = i;
-      count++;
+  const uploadUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`;
+
+  await axios.put(uploadUrl, buffer, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     }
   });
 
-  if (rowIndex > 0) {
-    sheet.getRow(rowIndex).getCell(38).value = null;
-    await workbook.xlsx.writeFile(notesFilePath);
-  }
+  console.log(`✅ Uploaded ${fileName} to OneDrive.`);
+}
 
-  res.sendStatus(200);
-});
-
-
-// STEP 1: Redirect to Microsoft Login
-app.get('/login', (req, res) => {
-  const url = `https://login.microsoftonline.com/785fd7e9-594d-4549-91b9-9372f7295962/oauth2/v2.0/authorize?client_id=89a49313-0f16-44c3-9f71-cf96eab166ad&response_type=code&redirect_uri=https://www.jksolarpower.com/auth/callback&response_mode=query&scope=offline_access%20Files.ReadWrite%20User.Read`;
-  
-  console.log("🔗 Redirecting to Microsoft with URL:", url); // Debug print
-  res.redirect(url);
-
-});
-
-// STEP 2: Microsoft redirects back here after login
-app.get('/auth/callback', async (req, res) => {
-  const code = req.query.code;
-
-  try {
-    const response = await axios.post(
-      `https://login.microsoftonline.com/785fd7e9-594d-4549-91b9-9372f7295962/oauth2/v2.0/token`,
-      qs.stringify({
-        client_id: '89a49313-0f16-44c3-9f71-cf96eab166ad',
-        scope: 'offline_access Files.ReadWrite User.Read',
-        code,
-        redirect_uri: 'https://www.jksolarpower.com/auth/callback',
-        grant_type: 'authorization_code',
-        client_secret: 'a0958e75-6be9-45cd-a1e9-e0a436769602',
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
-    );
-
-    const { access_token, refresh_token } = response.data;
-    console.log("✅ Access Token:", access_token);
-    console.log("♻️ Refresh Token:", refresh_token);
-
-    // For now, just show a success page
-    res.send('Login successful! Token received. Check console.');
-  } catch (err) {
-    console.error('❌ Token error:', err.response.data);
-    res.status(500).send('Failed to get access token');
-  }
-});
-
-
+module.exports = {
+  getAccessToken,
+  getWorkbookFromOneDrive,
+  uploadWorkbookToOneDrive
+};
 
 // 🚀 Start server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
-
 });
