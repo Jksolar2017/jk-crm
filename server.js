@@ -2016,7 +2016,7 @@ async function getAccessToken() {
   const data = qs.stringify({
     grant_type: 'client_credentials',
     client_id: '89a49313-0f16-44c3-9f71-cf96eab166ad',
-    client_secret: 'a0958e75-6be9-45cd-a1e9-e0a436769602',
+    client_secret: 'IZ-8Q~GaHcwhQnrCCj~ZH_I_3bHsZYpoC1xm2aLk',
     scope: 'https://graph.microsoft.com/.default',
   });
 
@@ -2024,6 +2024,7 @@ async function getAccessToken() {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
   });
 
+   console.log("🎟️ Access Token:", response.data.access_token);
   return response.data.access_token;
 }
 
@@ -2032,7 +2033,8 @@ async function downloadExcelFromOneDrive() {
   try {
     const accessToken = await getAccessToken();
 
-    const fileUrl = "https://graph.microsoft.com/v1.0/me/drive/root:/leads.xlsx:/content";
+    // Update URL to include the correct user endpoint
+    const fileUrl = "https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/leads.xlsx:/content";
 
     const response = await axios.get(fileUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -2049,9 +2051,12 @@ async function downloadExcelFromOneDrive() {
     throw err;
   }
 }
+
 async function getWorkbookFromOneDrive(fileName) {
   const token = await getAccessToken();
-  const fileUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`;
+
+  // Updated URL to use users/<user-email> for app-only token
+  const fileUrl = `https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/${fileName}:/content`;
 
   const response = await axios.get(fileUrl, {
     headers: { Authorization: `Bearer ${token}` },
@@ -2063,10 +2068,12 @@ async function getWorkbookFromOneDrive(fileName) {
 
   return { workbook, token };
 }
+
 async function uploadWorkbookToOneDrive(fileName, workbook, token) {
   const buffer = await workbook.xlsx.writeBuffer();
 
-  const uploadUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`;
+  // Updated URL for app-only access
+  const uploadUrl = `https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/${fileName}:/content`;
 
   await axios.put(uploadUrl, buffer, {
     headers: {
@@ -2075,8 +2082,6 @@ async function uploadWorkbookToOneDrive(fileName, workbook, token) {
     }
   });
 
-  console.log(`✅ Uploaded ${fileName} to OneDrive.`);
-}
 
 module.exports = {
   getAccessToken,
