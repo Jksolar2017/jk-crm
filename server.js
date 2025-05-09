@@ -2081,7 +2081,8 @@ async function uploadWorkbookToOneDrive(fileName, workbook, token) {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     }
   });
-
+console.log(`✅ Uploaded ${fileName} to OneDrive.`);
+}
 
 module.exports = {
   getAccessToken,
