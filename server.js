@@ -126,7 +126,43 @@ app.post('/submit-client', async (req, res) => {
     await uploadWorkbookToOneDrive('TempData.xlsx', workbook, token);
     console.log('✅ Client data saved to OneDrive Excel.');
 
-    res.send('✅ Client submitted successfully and files saved to OneDrive.');
+    res.send(`
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body {
+          font-family: 'Segoe UI', sans-serif;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 80vh;
+          background-color: #f2f9ff;
+        }
+        .success {
+          font-size: 24px;
+          color: #2d7a2d;
+          background: #e8fce8;
+          padding: 20px 30px;
+          border-radius: 12px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          text-align: center;
+        }
+        @media (max-width: 768px) {
+          .success {
+            font-size: 28px;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="success">✅ Client submitted successfully and all files saved .</div>
+    </body>
+  </html>
+`);
+
   } catch (err) {
     console.error('❌ Error in /submit-client:', err.message);
     res.status(500).send('⚠️ Could not save data to OneDrive.');
