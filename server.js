@@ -434,7 +434,11 @@ app.use(express.json());
 
 // Serve static files (like your HTML, CSS, etc.)
 app.use(express.static('public'));
-
+setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.set('Cache-Control', 'no-store');
+    }
+  }
 
 
 // 📝 Route to save timeline data to OneDrive Excel
