@@ -171,6 +171,30 @@ app.post('/add-timeline', express.json(), async (req, res) => {
 });
 
 
+const mime = require('mime-types');
+
+async function uploadToOneDriveFolder(clientName, field, buffer, fileName) {
+  const folderPath = `uploads/${clientName}`;
+  const fullPath = `${folderPath}/${fileName}`;
+
+  const token = await getAccessToken();
+  const contentType = mime.lookup(fileName) || 'application/octet-stream';
+
+  await axios.put(
+    `https://graph.microsoft.com/v1.0/me/drive/root:/${fullPath}:/content`,
+    buffer,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': contentType
+      }
+    }
+  );
+
+  console.log(`📁 Uploaded ${fileName} to ${fullPath}`);
+}
+
+
 app.post('/submit-documents', async (req, res) => {
   const clientName = req.body.name?.trim().toLowerCase().replace(/\s+/g, '_');
   const files = req.files;
