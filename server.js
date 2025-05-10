@@ -62,9 +62,11 @@ app.post('/submit-client', async (req, res) => {
 
     // 🖼️ Upload client photo (base64)
     if (data.photoData) {
-      const base64Data = data.photoData.replace(/^data:image\/png;base64,/, '');
+      const base64Data = data.photoData.replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
-      await uploadToOneDriveFolder(clientName, 'clientPhoto', buffer, 'clientPhoto.png');
+      const extension = data.photoData.match(/^data:image\/(\w+);base64,/)[1] || 'jpg';
+await uploadToOneDriveFolder(clientName, 'clientPhoto', buffer, `clientPhoto.${extension}`);
+
     }
 
     // 📤 Upload document files (Aadhar, PAN, etc.)
@@ -193,6 +195,7 @@ async function uploadToOneDriveFolder(clientName, field, buffer, fileName) {
 
   console.log(`📁 Uploaded ${fileName} to ${fullPath}`);
 }
+
 
 
 app.post('/submit-documents', async (req, res) => {
