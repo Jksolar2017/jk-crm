@@ -234,6 +234,41 @@
       preview.style.display = 'none';
     }
   }
+
+  // ✅ Show message only when all fields are filled
+  document.querySelector('form').addEventListener('submit', function (e) {
+    const requiredFileFields = [
+      'aadharFront', 'aadharBack', 'panCard', 'bill',
+      'ownershipProof', 'cancelCheque', 'purchaseAgreement', 'netMeteringAgreement'
+    ];
+
+    let allFilesPresent = true;
+    requiredFileFields.forEach(name => {
+      const input = document.querySelector(`input[name="${name}"]`);
+      if (!input || !input.files || input.files.length === 0) {
+        allFilesPresent = false;
+        input.style.border = '2px solid red';
+      } else {
+        input.style.border = '';
+      }
+    });
+
+    if (allFilesPresent) {
+      const existing = document.getElementById('sendingMessage');
+      if (!existing) {
+        const message = document.createElement('div');
+        message.id = 'sendingMessage';
+        message.textContent = '📤 Sending files, Please Wait...';
+        message.style.marginTop = '15px';
+        message.style.fontWeight = '600';
+        message.style.color = 'green';
+        document.querySelector('.form-container').appendChild(message);
+      }
+    } else {
+      e.preventDefault();
+      alert('Please upload all required documents before submitting.');
+    }
+  });
 </script>
 
 </body>
