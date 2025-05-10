@@ -582,55 +582,6 @@ app.get('/file-status/:clientName', async (req, res) => {
 });
 
 
-// ✅ Corrected route to get application timeline for a client from OneDrive
-app.get('/application-timeline/:clientName', async (req, res) => {
-  const rawClientName = req.params.clientName;
-  const clientName = rawClientName ? rawClientName.trim().toLowerCase() : '';
-
-  if (!clientName) {
-    return res.status(400).json({ error: 'Client name is required' });
-  }
-
-  try {
-    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
-    const worksheet = workbook.getWorksheet('Client Data');
-
-    if (!worksheet) {
-      return res.status(404).json({ error: 'Client Data sheet not found' });
-    }
-
-    const clientTimeline = [];
-
-    worksheet.eachRow((row) => {
-      const rowValues = row.values;
-      const clientNameFromRow = rowValues[2];
-      const appliedKW = rowValues[17]; // Column Q
-      const appliedOnPMSurya = rowValues[18]; // Column R
-      const applicationDHBVN = rowValues[19]; // Column S
-      const loadChangeReductionNewConnection = rowValues[20]; // Column T
-
-      if (clientNameFromRow && clientNameFromRow.toLowerCase().trim() === clientName) {
-        clientTimeline.push({
-          appliedKW,
-          appliedOnPMSurya,
-          applicationDHBVN,
-          loadChangeReductionNewConnection
-        });
-      }
-    });
-
-    if (clientTimeline.length === 0) {
-      return res.status(404).json({ error: 'No application timeline found for this client' });
-    }
-
-    res.json(clientTimeline);
-  } catch (err) {
-    console.error('❌ Error reading application timeline from OneDrive:', err.message);
-    return res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-
 //project status timeline excel
 const projectFields = [
   "Civil", "Earthing", "EarthingCable", "Panel", "Inverter", "ACDB",
