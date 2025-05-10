@@ -1977,9 +1977,6 @@ app.post('/api/addNote', async (req, res) => {
     res.status(500).json({ error: 'Failed to add note' });
   }
 });
-<<<<<<< HEAD
-=======
-
 
 
 app.post('/api/deleteNote', async (req, res) => {
@@ -2088,7 +2085,7 @@ async function uploadWorkbookToOneDrive(fileName, workbook, token) {
 
   console.log(`✅ Uploaded ${fileName} to OneDrive.`);
 }
->>>>>>> f9fa637 (Finalizing express-fileupload setup)
+
 
 
 module.exports = {
