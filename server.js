@@ -62,11 +62,19 @@ app.post('/submit-client', async (req, res) => {
 
     // 🖼️ Upload client photo (base64)
     if (data.photoData) {
-      const base64Data = data.photoData.replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
-      const extension = data.photoData.match(/^data:image\/(\w+);base64,/)[1] || 'jpg';
-await uploadToOneDriveFolder(clientName, 'clientPhoto', buffer, `clientPhoto.${extension}`);
+      const base64Match = data.photoData.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (base64Match) {
+        const extension = base64Match[1];
+        const base64Data = base64Match[2];
+        const buffer = Buffer.from(base64Data, 'base64');
 
+        console.log('🧪 Base64 length:', base64Data.length);
+        console.log('🧪 Detected extension:', extension);
+
+        await uploadToOneDriveFolder(clientName, 'clientPhoto', buffer, `clientPhoto.${extension}`);
+      } else {
+        console.warn('⚠️ Invalid base64 format in photoData');
+      }
     }
 
     // 📤 Upload document files (Aadhar, PAN, etc.)
@@ -95,7 +103,7 @@ await uploadToOneDriveFolder(clientName, 'clientPhoto', buffer, `clientPhoto.${e
       netMeteringAgreement: `uploads/${clientName}/netmeteringagreement.png`
     };
 
-    // 📊 Read TempData.xlsx from OneDrive
+    // 📊 Save client data to OneDrive Excel
     const { workbook, token } = await getWorkbookFromOneDrive('TempData.xlsx');
     const sheet = workbook.getWorksheet('Client Data') || workbook.addWorksheet('Client Data');
 
@@ -110,10 +118,11 @@ await uploadToOneDriveFolder(clientName, 'clientPhoto', buffer, `clientPhoto.${e
 
     res.send('✅ Client submitted successfully and files saved to OneDrive.');
   } catch (err) {
-    console.error('❌ Error:', err.message);
+    console.error('❌ Error in /submit-client:', err.message);
     res.status(500).send('⚠️ Could not save data to OneDrive.');
   }
 });
+
 
 
 // ✅ Search route to check if client folder exists in OneDrive
@@ -127,7 +136,7 @@ app.get('/search-client', async (req, res) => {
 
   try {
     const token = await getAccessToken();
-    const url = `https://graph.microsoft.com/v1.0/me/drive/root:/uploads/${clientName}`;
+    const url = `https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/uploads/${clientName}`;
     
     await axios.get(url, {
       headers: { Authorization: `Bearer ${token}` }
@@ -182,16 +191,14 @@ async function uploadToOneDriveFolder(clientName, field, buffer, fileName) {
   const token = await getAccessToken();
   const contentType = mime.lookup(fileName) || 'application/octet-stream';
 
-  await axios.put(
-    `https://graph.microsoft.com/v1.0/me/drive/root:/${fullPath}:/content`,
-    buffer,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': contentType
-      }
+  const uploadUrl = `https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/${fullPath}:/content`;
+
+  await axios.put(uploadUrl, buffer, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': contentType
     }
-  );
+  });
 
   console.log(`📁 Uploaded ${fileName} to ${fullPath}`);
 }
