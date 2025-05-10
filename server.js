@@ -77,11 +77,19 @@ app.post('/submit-client', async (req, res) => {
       }
     }
 
-    // 📤 Upload document files (Aadhar, PAN, etc.)
-    for (let field in files) {
-      const file = files[field][0] || files[field];
-      await uploadToOneDriveFolder(clientName, field, file.data, file.name);
-    }
+    // 📤 Upload document files (Aadhar, PAN, etc.) — parallel with logs
+    const uploadTasks = Object.entries(files).map(async ([field, fileObj]) => {
+      const file = fileObj[0] || fileObj;
+      const ext = path.extname(file.name);
+      const customName = `${field.toLowerCase()}${ext}`;
+
+      await uploadToOneDriveFolder(clientName, field, file.data, customName);
+
+      const pretty = field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+      console.log(`📤 ${pretty} uploaded...`);
+    });
+
+    await Promise.all(uploadTasks);
 
     // 📄 Prepare client data with OneDrive paths
     const client = {
@@ -108,13 +116,12 @@ app.post('/submit-client', async (req, res) => {
     const sheet = workbook.getWorksheet('Client Data') || workbook.addWorksheet('Client Data');
 
     const newRow = sheet.addRow([
-  client.date, client.name, client.address, client.mobile, client.email, client.kw,
-  client.advance, client.totalCost, client.aadharFront, client.aadharBack, client.panCard, client.bill,
-  client.ownershipProof, client.cancelCheque, client.purchaseAgreement, client.netMeteringAgreement
-]);
+      client.date, client.name, client.address, client.mobile, client.email, client.kw,
+      client.advance, client.totalCost, client.aadharFront, client.aadharBack, client.panCard, client.bill,
+      client.ownershipProof, client.cancelCheque, client.purchaseAgreement, client.netMeteringAgreement
+    ]);
 
-newRow.hidden = false; // 👻 UNHIDE the row, make it visible!
-
+    newRow.hidden = false;
 
     await uploadWorkbookToOneDrive('TempData.xlsx', workbook, token);
     console.log('✅ Client data saved to OneDrive Excel.');
@@ -125,6 +132,7 @@ newRow.hidden = false; // 👻 UNHIDE the row, make it visible!
     res.status(500).send('⚠️ Could not save data to OneDrive.');
   }
 });
+
 
 
 
@@ -300,7 +308,6 @@ app.get('/file-status/:clientName', async (req, res) => {
 });
 
 
-// 🔍 Route to view status of top-level uploaded documents in OneDrive (example only)
 app.get('/check-files', async (req, res) => {
   try {
     const token = await getAccessToken();
@@ -315,7 +322,7 @@ app.get('/check-files', async (req, res) => {
 
     for (const path of fileList) {
       const encodedPath = encodeURIComponent(path);
-      const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${encodedPath}`;
+      const url = `https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/${encodedPath}`;
       try {
         await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
         results.push({ file: path, exists: true });
@@ -510,74 +517,6 @@ app.get('/application-timeline/:clientName', async (req, res) => {
   } catch (err) {
     console.error('❌ Error loading timeline data from OneDrive:', err.message);
     res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-
-
-
-// Add this route in your Express server (server.js)
-
-app.get('/file-status/:clientName', async (req, res) => {
-  const clientName = req.params.clientName.toLowerCase().trim();
-  const folder = `uploads/${clientName}`;
-  const fileFields = [
-    'aadharfront.png',
-    'aadharback.png',
-    'pancard.png',
-    'bill.png',
-    'ownershipproof.png',
-    'cancelcheque.png',
-    'purchaseagreement.png',
-    'netmeteringagreement.png'
-  ];
-
-  try {
-    const { workbook } = await getWorkbookFromOneDrive('TempData.xlsx');
-    const sheet = workbook.getWorksheet('Client Data');
-    if (!sheet) return res.status(404).json({ message: 'Client Data sheet not found' });
-
-    let clientInfo = null;
-
-    sheet.eachRow((row) => {
-      const rowName = row.getCell(2).value?.toString().toLowerCase().trim(); // Column B = Name
-      if (rowName === clientName) {
-        clientInfo = {
-          name: row.getCell(2).value || '',
-          address: row.getCell(3).value || '',
-          mobile: row.getCell(4).value || '',
-          email: row.getCell(5).value || '',
-          kw: row.getCell(6).value || ''
-        };
-      }
-    });
-
-    if (!clientInfo) {
-      return res.status(404).json({ message: 'No data found for the client' });
-    }
-
-    const token = await getAccessToken();
-
-    // 🧾 Check file existence for each expected document
-    const files = await Promise.all(
-      fileFields.map(async (file) => {
-        const fileUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/${file}`;
-        try {
-          await axios.get(fileUrl, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          return { file: file, exists: true };
-        } catch (err) {
-          return { file: file, exists: false };
-        }
-      })
-    );
-
-    res.json({ clientInfo, files });
-  } catch (err) {
-    console.error('❌ Error in file-status route:', err.message);
-    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
@@ -1557,10 +1496,13 @@ app.post('/save-lead', async (req, res) => {
     const token = await getAccessToken();
 
     // 📥 Download workbook from OneDrive
-    const response = await axios.get(`https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`, {
-      headers: { Authorization: `Bearer ${token}` },
-      responseType: 'arraybuffer'
-    });
+    const response = await axios.get(
+      `https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/${fileName}:/content`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'arraybuffer'
+      }
+    );
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(response.data);
@@ -1579,7 +1521,7 @@ app.post('/save-lead', async (req, res) => {
     // 📤 Upload workbook back to OneDrive
     const buffer = await workbook.xlsx.writeBuffer();
     await axios.put(
-      `https://graph.microsoft.com/v1.0/me/drive/root:/${fileName}:/content`,
+      `https://graph.microsoft.com/v1.0/users/muninderpal@jk17.onmicrosoft.com/drive/root:/${fileName}:/content`,
       buffer,
       {
         headers: {
@@ -1595,6 +1537,7 @@ app.post('/save-lead', async (req, res) => {
     res.status(500).send('Failed to save');
   }
 });
+
 
 
 
