@@ -107,11 +107,14 @@ app.post('/submit-client', async (req, res) => {
     const { workbook, token } = await getWorkbookFromOneDrive('TempData.xlsx');
     const sheet = workbook.getWorksheet('Client Data') || workbook.addWorksheet('Client Data');
 
-    sheet.addRow([
-      client.date, client.name, client.address, client.mobile, client.email, client.kw,
-      client.advance, client.totalCost, client.aadharFront, client.aadharBack, client.panCard, client.bill,
-      client.ownershipProof, client.cancelCheque, client.purchaseAgreement, client.netMeteringAgreement
-    ]);
+    const newRow = sheet.addRow([
+  client.date, client.name, client.address, client.mobile, client.email, client.kw,
+  client.advance, client.totalCost, client.aadharFront, client.aadharBack, client.panCard, client.bill,
+  client.ownershipProof, client.cancelCheque, client.purchaseAgreement, client.netMeteringAgreement
+]);
+
+newRow.hidden = false; // 👻 UNHIDE the row, make it visible!
+
 
     await uploadWorkbookToOneDrive('TempData.xlsx', workbook, token);
     console.log('✅ Client data saved to OneDrive Excel.');
@@ -213,11 +216,13 @@ app.post('/submit-documents', async (req, res) => {
     return res.status(400).send('No files were uploaded.');
   }
 
-  try {
-    for (let field in files) {
-      const file = files[field][0] || files[field];
-      await uploadToOneDriveFolder(clientName, field, file.data, file.name);
-    }
+ try {
+  for (let field in files) {
+    const file = files[field][0] || files[field];
+    const ext = path.extname(file.name);
+    const customName = `${fieldNameToFileName[field] || field}${ext}`;
+    await uploadToOneDriveFolder(clientName, field, file.data, customName);
+  }
 
     console.log('📤 Uploaded files:', Object.keys(files));
     res.send('✅ Documents uploaded successfully to OneDrive!');
